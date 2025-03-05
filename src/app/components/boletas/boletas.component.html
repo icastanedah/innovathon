@@ -1,0 +1,375 @@
+<div class="boleta-detail-container">
+  <!-- Estado de carga -->
+  <div *ngIf="cargando" class="loading-container">
+    <div class="loader"></div>
+    <p>Cargando boleta...</p>
+  </div>
+
+  <!-- Estado de error -->
+  <div *ngIf="error" class="error-container">
+    <i class="fas fa-exclamation-circle"></i>
+    <p class="error-message">{{ error }}</p>
+    <button class="btn-regresar" (click)="onRegresarClick()">
+      <i class="fas fa-arrow-left"></i>
+      Regresar
+    </button>
+  </div>
+
+  <!-- Contenido principal -->
+  <div *ngIf="boleta && !cargando" class="boleta-container">
+    <!-- Encabezado con usuario -->
+    <div class="user-header">
+      <div class="user-info">
+        <i class="fas fa-user"></i>
+        <span>{{ usuario }}</span>
+      </div>
+      <div class="boleta-info">
+        Boleta: {{ boleta.numero }} Id: {{ boleta.id }}
+      </div>
+    </div>
+
+    <!-- Control de tiempos -->
+    <section class="seccion control-tiempos">
+      <h3><i class="fas fa-clock"></i> Control de tiempos</h3>
+      <div class="tiempos-grid">
+        <div class="tiempo-item">
+          <label>Tiempo en Despachar</label>
+          <div class="tiempo-valor">{{ tiempos.tiempoDespacho }}</div>
+          <div class="tiempo-detalle">
+            <span>Hora de Despacho</span>
+            <span>{{ tiempos.horaDespacho | date:'dd/MM/yyyy, h:mm:ss a' }}</span>
+          </div>
+        </div>
+        <div class="tiempo-item">
+          <label>Tiempo en Llegar</label>
+          <div class="tiempo-valor">{{ tiempos.tiempoLlegada }}</div>
+          <div class="tiempo-detalle">
+            <span>Hora de Llegada</span>
+            <span>{{ tiempos.horaLlegada | date:'dd/MM/yyyy, h:mm:ss a' }}</span>
+          </div>
+        </div>
+        <div class="tiempo-item">
+          <label>Tiempo Atención Proveedor</label>
+          <div class="tiempo-valor">{{ tiempos.tiempoAtencion }}</div>
+          <div class="tiempo-detalle">
+            <span>Hora de Finalización</span>
+            <span>{{ tiempos.horaFinalizacion | date:'dd/MM/yyyy, h:mm:ss a' }}</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Detalle de los Costos -->
+    <section class="seccion costos">
+      <h3><i class="fas fa-calculator"></i> Detalle de los Costos</h3>
+      <div class="costos-container">
+        <div class="costos-header">
+          <div class="costo-campo">
+            <label>Servicio</label>
+            <select [(ngModel)]="costos.servicio" [disabled]="!esEditable('servicio')">
+              <option value="Grúa">Grúa</option>
+              <option value="Mecánico">Mecánico</option>
+            </select>
+          </div>
+          <div class="costo-campo">
+            <label>Unidades</label>
+            <input type="number" [(ngModel)]="costos.unidades" [readonly]="!esEditable('unidades')">
+          </div>
+        </div>
+        
+        <table class="costos-table">
+          <thead>
+            <tr>
+              <th>Tarifa</th>
+              <th>Cantidad</th>
+              <th>Valor (Q)</th>
+              <th>Subtotal (Q)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Servicio Local/Banderazo</td>
+              <td>1</td>
+              <td>{{ costos.tarifaBase }}</td>
+              <td>{{ costos.tarifaBase }}</td>
+            </tr>
+            <tr>
+              <td>Kilómetro Terracería</td>
+              <td><input type="number" [(ngModel)]="costos.kmTerracerias" [readonly]="!esEditable('kmTerracerias')"></td>
+              <td>{{ costos.tarifaKmTerracerias }}</td>
+              <td>{{ costos.kmTerracerias * costos.tarifaKmTerracerias }}</td>
+            </tr>
+            <tr>
+              <td>Kilómetro Recorrido</td>
+              <td><input type="number" [(ngModel)]="costos.kmRecorrido" [readonly]="!esEditable('kmRecorrido')"></td>
+              <td>{{ costos.tarifaKmRecorrido }}</td>
+              <td>{{ costos.kmRecorrido * costos.tarifaKmRecorrido }}</td>
+            </tr>
+            <tr>
+              <td>Kilómetro Vacío</td>
+              <td><input type="number" [(ngModel)]="costos.kmVacio" [readonly]="!esEditable('kmVacio')"></td>
+              <td>{{ costos.tarifaKmVacio }}</td>
+              <td>{{ costos.kmVacio * costos.tarifaKmVacio }}</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="3" class="text-right"><strong>Total:</strong></td>
+              <td><strong>{{ calcularSubtotal() }}</strong></td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <div class="costos-adicionales">
+          <div class="costo-campo">
+            <label>Costo Maniobra</label>
+            <input type="number" [(ngModel)]="costos.costoManiobra" [readonly]="!esEditable('costoManiobra')">
+          </div>
+          <div class="costo-campo">
+            <label>Costo por Esperar</label>
+            <input type="number" [(ngModel)]="costos.costoEspera" [readonly]="!esEditable('costoEspera')">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tiempo en Llegar -->
+    <section class="seccion tiempo-llegar">
+      <h3>Tiempo en Llegar</h3>
+      <div class="perspectiva-cliente">
+        <label>Perspectiva del Cliente</label>
+        <div class="tiempo-contador">0 Días, 00:50:06</div>
+      </div>
+    </section>
+
+    <!-- Datos del Servicio -->
+    <section class="seccion datos-servicio">
+      <h3>Datos del Servicio</h3>
+      <div class="campo">
+        <label>Piloto</label>
+        <input type="text" [(ngModel)]="piloto" [readonly]="!esEditable('piloto')" placeholder="b1519252s972226">
+      </div>
+      <div class="campo">
+        <label>Teléfono</label>
+        <input type="tel" [(ngModel)]="telefono" [readonly]="!esEditable('telefono')" placeholder="9999-9999">
+      </div>
+      <div class="campo">
+        <label>Tiempo Estimado</label>
+        <select [(ngModel)]="tiempoEstimado" [disabled]="!esEditable('tiempoEstimado')">
+          <option value="">-Seleccionar-</option>
+          <option value="15">15 minutos</option>
+          <option value="30">30 minutos</option>
+          <option value="45">45 minutos</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- Datos del Proveedor -->
+    <section class="seccion datos-proveedor">
+      <h3>Datos del Proveedor</h3>
+      <div class="proveedor-info">
+        <p>Grúas Andre: Base</p>
+        <p>56902131, 41517015 - 50169152</p>
+      </div>
+    </section>
+
+    <!-- Datos de localización -->
+    <section class="seccion datos-localizacion">
+      <h3>Datos de localización</h3>
+      <div class="localizacion-grid">
+        <div class="campo">
+          <label>País</label>
+          <input type="text" [(ngModel)]="pais" [readonly]="!esEditable('pais')" value="GUATEMALA">
+        </div>
+        <div class="campo">
+          <label>Departamento</label>
+          <input type="text" [(ngModel)]="departamento" [readonly]="!esEditable('departamento')" value="GUATEMALA">
+        </div>
+        <div class="campo">
+          <label>Municipio</label>
+          <input type="text" [(ngModel)]="municipio" [readonly]="!esEditable('municipio')" value="GUATEMALA">
+        </div>
+        <div class="campo">
+          <label>Zona</label>
+          <input type="text" [(ngModel)]="zona" [readonly]="!esEditable('zona')" placeholder="Zona">
+        </div>
+        <div class="campo">
+          <label>Colonia</label>
+          <input type="text" [(ngModel)]="colonia" [readonly]="!esEditable('colonia')" placeholder="Colonia">
+        </div>
+        <div class="campo">
+          <label>Calle/Av</label>
+          <input type="text" [(ngModel)]="calleAv" [readonly]="!esEditable('calleAv')" placeholder="Calle/Av">
+        </div>
+        <div class="campo">
+          <label>Número</label>
+          <input type="text" [(ngModel)]="numero" [readonly]="!esEditable('numero')" placeholder="Número">
+        </div>
+        <div class="campo">
+          <label>Edificio</label>
+          <input type="text" [(ngModel)]="edificio" [readonly]="!esEditable('edificio')" placeholder="Edificio">
+        </div>
+        <div class="campo">
+          <label>Apartamento</label>
+          <input type="text" [(ngModel)]="apartamento" [readonly]="!esEditable('apartamento')" placeholder="Apartamento">
+        </div>
+        <div class="campo referencias">
+          <label>Referencias*</label>
+          <textarea [(ngModel)]="referencias" [readonly]="!esEditable('referencias')" rows="3"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- Encabezado -->
+    <div class="boleta-header">
+      <h2>Boleta #{{ boleta.numero }}</h2>
+      <span class="estado-badge" [class]="boleta.estado">{{ boleta.estado }}</span>
+    </div>
+
+    <!-- Barra de acciones -->
+    <div class="action-bar">
+      <ng-container *ngIf="!modoEdicion">
+        <button class="btn-editar" (click)="onEditarClick()" [disabled]="guardando">
+          <i class="fas fa-edit"></i> Editar
+        </button>
+        <button class="btn-imprimir" (click)="onImprimirClick()" [disabled]="guardando">
+          <i class="fas fa-print"></i> Imprimir
+        </button>
+        <button class="btn-cancelar" (click)="onCancelarBoletaClick()" 
+                [disabled]="guardando || boleta.estado === EstadoBoleta.CANCELADO">
+          <i class="fas fa-ban"></i> Cancelar Boleta
+        </button>
+      </ng-container>
+      
+      <ng-container *ngIf="modoEdicion">
+        <button class="btn-guardar" (click)="onGuardarClick()" [disabled]="guardando">
+          <i class="fas fa-save"></i> 
+          <span *ngIf="!guardando">Guardar Cambios</span>
+          <span *ngIf="guardando">Guardando...</span>
+        </button>
+        <button class="btn-cancelar" (click)="onCancelarEdicionClick()" [disabled]="guardando">
+          <i class="fas fa-times"></i> Cancelar Edición
+        </button>
+      </ng-container>
+      
+      <button class="btn-regresar" (click)="onRegresarClick()" [disabled]="guardando">
+        <i class="fas fa-arrow-left"></i> Regresar
+      </button>
+    </div>
+
+    <!-- Datos del Siniestro -->
+    <section class="seccion">
+      <h3>Datos del Siniestro</h3>
+      <div class="campo">
+        <label>Fecha:</label>
+        <input type="datetime-local" 
+               [(ngModel)]="boleta.fecha" 
+               [readonly]="!esEditable('fecha')"
+               [class.editable]="esEditable('fecha')">
+      </div>
+      <div class="campo">
+        <label>Tipo de Incidente:</label>
+        <input type="text" 
+               [(ngModel)]="boleta.siniestro.tipo" 
+               [readonly]="!esEditable('tipoSiniestro')"
+               [class.editable]="esEditable('tipoSiniestro')">
+      </div>
+    </section>
+
+    <!-- Datos del Vehículo -->
+    <section class="seccion">
+      <h3>Datos del Vehículo</h3>
+      <div class="campo">
+        <label>Marca:</label>
+        <input type="text" 
+               [(ngModel)]="boleta.vehiculo.marca" 
+               [readonly]="!esEditable('marca')"
+               [class.editable]="esEditable('marca')">
+      </div>
+      <div class="campo">
+        <label>Modelo:</label>
+        <input type="text" 
+               [(ngModel)]="boleta.vehiculo.modelo" 
+               [readonly]="!esEditable('modelo')"
+               [class.editable]="esEditable('modelo')">
+      </div>
+      <div class="campo">
+        <label>Año:</label>
+        <input type="text" 
+               [(ngModel)]="boleta.vehiculo.modelo" 
+               [readonly]="!esEditable('modelo')"
+               [class.editable]="esEditable('modelo')">
+      </div>
+      <div class="campo">
+        <label>Placa:</label>
+        <input type="text" 
+               [(ngModel)]="boleta.vehiculo.placa" 
+               [readonly]="!esEditable('placa')"
+               [class.editable]="esEditable('placa')">
+      </div>
+    </section>
+
+    <!-- Datos del Asegurado -->
+    <section class="seccion">
+      <h3>Datos del Asegurado</h3>
+      <div class="campo">
+        <label>Nombre:</label>
+        <input type="text" 
+               [(ngModel)]="boleta.asegurado.titular" 
+               [readonly]="!esEditable('titular')"
+               [class.editable]="esEditable('titular')">
+      </div>
+      <div class="campo">
+        <label>Teléfono:</label>
+        <input type="tel" 
+               [(ngModel)]="telefono" 
+               [readonly]="!esEditable('telefono')"
+               [class.editable]="esEditable('telefono')">
+      </div>
+      <div class="campo">
+        <label>Póliza:</label>
+        <input type="text" 
+               [(ngModel)]="boleta.asegurado.numeroPoliza" 
+               [readonly]="!esEditable('numeroPoliza')"
+               [class.editable]="esEditable('numeroPoliza')">
+      </div>
+    </section>
+
+    <!-- Ubicación del Siniestro -->
+    <section class="seccion">
+      <h3>Ubicación del Siniestro</h3>
+      <div class="campo">
+        <label>Dirección:</label>
+        <textarea [(ngModel)]="boleta.direccion.ubicacion" 
+                  [readonly]="!esEditable('direccion')"
+                  [class.editable]="esEditable('direccion')"></textarea>
+      </div>
+      <div class="campo">
+        <label>Referencias:</label>
+        <textarea [(ngModel)]="boleta.direccion.referencia" 
+                  [readonly]="!esEditable('referencias')"
+                  [class.editable]="esEditable('referencias')"></textarea>
+      </div>
+    </section>
+
+    <!-- Servicios Asignados -->
+    <section class="seccion">
+      <h3>Servicios Asignados</h3>
+      <div class="servicios-lista">
+        <div *ngFor="let servicio of boleta.servicios" class="servicio-item">
+          <span class="servicio-tipo">{{ servicio.tipo }}</span>
+          <span class="servicio-estado">{{ servicio.estado }}</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Observaciones -->
+    <section class="seccion">
+      <h3>Observaciones</h3>
+      <textarea [(ngModel)]="boleta.observaciones" 
+                [readonly]="!esEditable('observaciones')"
+                [class.editable]="esEditable('observaciones')"
+                rows="4"></textarea>
+    </section>
+  </div>
+</div>

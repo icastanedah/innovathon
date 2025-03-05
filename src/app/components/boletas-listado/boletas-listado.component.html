@@ -1,0 +1,213 @@
+<div class="boletas-listado-container">
+  <!-- Barra de búsqueda principal -->
+  <div class="search-bar">
+    <!-- Tabs de búsqueda -->
+    <div class="search-tabs">
+      <button 
+        class="tab" 
+        [class.active]="tipoBusqueda === 'general'"
+        (click)="cambiarTipoBusqueda('general')">
+        <i class="fas fa-search"></i>
+        Búsqueda General
+      </button>
+      <button 
+        class="tab" 
+        [class.active]="tipoBusqueda === 'numero'"
+        (click)="cambiarTipoBusqueda('numero')">
+        <i class="fas fa-hashtag"></i>
+        Búsqueda por número de boleta
+      </button>
+    </div>
+
+    <!-- Campo de búsqueda por número -->
+    <div class="search-input-container" *ngIf="tipoBusqueda === 'numero'">
+      <div class="search-input">
+        <i class="fas fa-hashtag"></i>
+        <input 
+          type="text" 
+          [(ngModel)]="numeroBoleta"
+          placeholder="Ingrese el número de boleta (ejemplo: BOL-001)"
+          (keyup.enter)="onBuscarClick()">
+      </div>
+      <div class="search-actions">
+        <button class="btn-buscar-numero" (click)="onBuscarClick()">
+          <i class="fas fa-search"></i>
+          Buscar
+        </button>
+        <button class="btn-limpiar-numero" (click)="limpiarFiltros()">
+          <i class="fas fa-times"></i>
+          Limpiar
+        </button>
+      </div>
+    </div>
+
+    @if (tipoBusqueda === 'numero' && !cargando && !error && boletas.length > 0) {
+      <div class="resultados-numero">
+        <p class="resultados-info">
+          <i class="fas fa-info-circle"></i>
+          Se encontraron {{boletas.length}} resultado(s) para el número "{{numeroBoleta}}"
+        </p>
+      </div>
+    }
+  </div>
+
+  <!-- Filtros - Solo mostrar en búsqueda general -->
+  @if (tipoBusqueda === 'general') {
+    <div class="filtros-container">
+      <div class="filtros-grid">
+        <div class="filtro-item">
+          <label>Fecha Inicio:</label>
+          <input type="date" [(ngModel)]="filtros.fechaInicio">
+        </div>
+
+        <div class="filtro-item">
+          <label>Fecha Fin:</label>
+          <input type="date" [(ngModel)]="filtros.fechaFin">
+        </div>
+
+        <div class="filtro-item">
+          <label>Nombre Cliente:</label>
+          <input type="text" [(ngModel)]="filtros.nombreCliente">
+        </div>
+
+        <div class="filtro-item">
+          <label>Operador:</label>
+          <select [(ngModel)]="filtros.operador">
+            <option value="">-Todos-</option>
+            @for (operador of operadores; track operador) {
+              <option [value]="operador">{{operador}}</option>
+            }
+          </select>
+        </div>
+
+        <div class="filtro-item">
+          <label>Estado:</label>
+          <select [(ngModel)]="filtros.estado">
+            <option value="">-Todos-</option>
+            @for (estado of estados; track estado) {
+              <option [value]="estado">{{estado}}</option>
+            }
+          </select>
+        </div>
+
+        <div class="filtro-item">
+          <label>Tipo de Siniestro:</label>
+          <select [(ngModel)]="filtros.tipoSiniestro">
+            <option value="">-Todos-</option>
+            @for (tipo of tiposSiniestro; track tipo) {
+              <option [value]="tipo">{{tipo}}</option>
+            }
+          </select>
+        </div>
+
+        <div class="filtro-item">
+          <label>Servicio:</label>
+          <select [(ngModel)]="filtros.servicio">
+            <option value="">-Todos-</option>
+            @for (servicio of servicios; track servicio) {
+              <option [value]="servicio">{{servicio}}</option>
+            }
+          </select>
+        </div>
+
+        <div class="filtro-item">
+          <label>Origen de Boleta:</label>
+          <select [(ngModel)]="filtros.origenBoleta">
+            <option value="">-Todos-</option>
+            @for (origen of origenesBoleta; track origen) {
+              <option [value]="origen">{{origen}}</option>
+            }
+          </select>
+        </div>
+
+        <div class="filtro-item">
+          <label>Despachador:</label>
+          <select [(ngModel)]="filtros.despachador">
+            <option value="">-Todos-</option>
+            @for (despachador of despachadores; track despachador) {
+              <option [value]="despachador">{{despachador}}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <div class="filtros-actions">
+        <button class="btn-buscar" (click)="onBuscarClick()">
+          <i class="fas fa-search"></i>
+          Buscar
+        </button>
+        <button class="btn-limpiar" (click)="limpiarFiltros()">
+          <i class="fas fa-times"></i>
+          Limpiar Filtros
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Tabla de resultados -->
+  @if (cargando) {
+    <div class="loading-container">
+      <div class="loader"></div>
+      <p>Cargando resultados...</p>
+    </div>
+  } @else if (error) {
+    <div class="error-container">
+      <i class="fas fa-exclamation-circle"></i>
+      <p>{{error}}</p>
+    </div>
+  } @else if (boletas.length === 0) {
+    <div class="no-results">
+      <i class="fas fa-search"></i>
+      <p>No se encontraron resultados</p>
+    </div>
+  } @else {
+    <div class="table-container">
+      <table class="boletas-table">
+        <thead>
+          <tr>
+            <th>No. Boleta</th>
+            <th>Piloto</th>
+            <th>Reportante</th>
+            <th>Póliza</th>
+            <th>Dirección</th>
+            <th>Estado</th>
+            <th>Tipo Siniestro</th>
+            <th>Origen</th>
+            <th>Tipo Boleta</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (boleta of boletas; track $index) {
+            <tr>
+              <td>{{boleta.numero}}</td>
+              <td>{{boleta.piloto}}</td>
+              <td>{{boleta.reportante}}</td>
+              <td>{{boleta.poliza}}</td>
+              <td>{{boleta.direccion}}</td>
+              <td>
+                <span class="estado-badge" [class]="'estado-' + boleta.estado.toLowerCase()">
+                  {{boleta.estado}}
+                </span>
+              </td>
+              <td>{{boleta.tipoSiniestro}}</td>
+              <td>{{boleta.origen}}</td>
+              <td>{{boleta.tipoBoleta}}</td>
+              <td class="acciones">
+                <button class="btn-accion ver" (click)="verDetalle(boleta.id)" title="Ver detalle">
+                  <i class="fas fa-eye"></i>
+                </button>
+                <button class="btn-accion editar" title="Editar">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn-accion imprimir" title="Imprimir">
+                  <i class="fas fa-print"></i>
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div> 
