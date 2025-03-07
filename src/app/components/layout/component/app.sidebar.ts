@@ -21,7 +21,7 @@ import {DatePicker, DatePickerModule} from 'primeng/datepicker';
   ],
   template: `<div class="layout-sidebar bg-gray-100 p-4 w-80">
     <div class="p-4 rounded-md ">
-      <div class="font-semibold text-lg mb-4">Filters</div>
+      <div class="font-semibold text-lg mb-4">Filtros</div>
       <div class="grid grid-cols-1 gap-y-7">
         <div class="col-span-1">
           <label for="numero" class="block text-sm font-medium text-gray-700">Número</label>
@@ -45,8 +45,8 @@ import {DatePicker, DatePickerModule} from 'primeng/datepicker';
         </div>
       </div>
       <div class="flex justify-between mt-6">
-        <button pButton type="button" label="Clear" class="p-button-secondary" (click)="clearFilter()"></button>
-        <button pButton type="button" label="Filter" class="p-button-primary" (click)="applyFilter()"></button>
+        <button pButton type="button" label="Limpiear" class="p-button-secondary" (click)="clearFilter()"></button>
+        <button pButton type="button" label="Filtrar" class="p-button-primary" (click)="applyFilter()"></button>
       </div>
     </div>
   </div>`,
