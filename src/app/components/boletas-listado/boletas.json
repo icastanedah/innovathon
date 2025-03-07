@@ -1,0 +1,212 @@
+[
+  {
+    "id": 1,
+    "numero": "B-001",
+    "fecha": "2024-03-07T10:00:00Z",
+    "estado": "Activo",
+    "tipo": "Seguros G&T",
+    "telefonos": ["123-456-7890"],
+    "siniestro": {
+      "tipo": "Choque",
+      "nombreReportante": "Juan Pérez",
+      "nombrePiloto": "Pedro Gómez",
+      "descripcion": "Colisión en la intersección...",
+      "terceroCulpable": true,
+      "compromisoPago": false
+    },
+    "vehiculo": {
+      "marca": "Toyota",
+      "linea": "Corolla",
+      "color": "Rojo",
+      "placa": "ABC-123",
+      "modelo": "2020",
+      "tipo": "Automóvil"
+    },
+    "asegurado": {
+      "numeroPoliza": "P-12345",
+      "titular": "María López",
+      "intermediario": "Agente X",
+      "tipoCliente": "Individual"
+    },
+    "reclamo": {
+      "numero": "R-001",
+      "analista": "Ana Torres"
+    },
+    "observaciones": ["Nota 1", "Nota 2"],
+    "servicios": [
+      { "id": 1, "tipo": "Grúa", "estado": "Asignado", "fechaAsignacion": "2024-03-07T11:00:00Z" }
+    ],
+    "direccion": {
+      "ubicacion": "Ciudad",
+      "zona": "10",
+      "calleAvenida": "Calle Principal"
+    },
+    "tiempos": {
+      "horaDespacho": "2024-03-07T10:05:00Z",
+      "horaLlegada": "2024-03-07T10:15:00Z",
+      "horaFinalizacion": "2024-03-07T10:45:00Z",
+      "tiempoDespacho": "5 min",
+      "tiempoLlegada": "10 min",
+      "tiempoAtencion": "30 min"
+    },
+    "costos": {
+      "servicio": "Grúa",
+      "unidades": 1,
+      "kmTerracerias": 0,
+      "kmRecorrido": 10,
+      "kmVacio": 5,
+      "costoManiobra": 50,
+      "costoEspera": 20,
+      "tarifaBase": 100,
+      "tarifaKmTerracerias": 0,
+      "tarifaKmRecorrido": 5,
+      "tarifaKmVacio": 2
+    },
+    "proveedor": {
+      "nombre": "Proveedor Y",
+      "telefonos": ["987-654-3210"],
+      "tipo": "Grúas",
+      "base": "Base Central"
+    }
+  },
+  {
+    "id": 2,
+    "numero": "B-002",
+    "fecha": "2024-03-06T15:30:00Z",
+    "estado": "Pendiente",
+    "tipo": "Asistencia Vial",
+    "telefonos": ["321-654-0987"],
+    "siniestro": {
+      "tipo": "Avería Mecánica",
+      "nombreReportante": "Luis Méndez",
+      "nombrePiloto": "Carlos Ramírez",
+      "descripcion": "Falla en el motor en plena carretera",
+      "terceroCulpable": false,
+      "compromisoPago": false
+    },
+    "vehiculo": {
+      "marca": "Honda",
+      "linea": "Civic",
+      "color": "Azul",
+      "placa": "XYZ-789",
+      "modelo": "2019",
+      "tipo": "Automóvil"
+    },
+    "asegurado": {
+      "numeroPoliza": "P-67890",
+      "titular": "Andrea Martínez",
+      "intermediario": "Agente Y",
+      "tipoCliente": "Corporativo"
+    },
+    "reclamo": {
+      "numero": "R-002",
+      "analista": "Fernando Ruiz"
+    },
+    "observaciones": ["Requiere seguimiento técnico"],
+    "servicios": [
+      { "id": 2, "tipo": "Mecánico", "estado": "Pendiente", "fechaAsignacion": "2024-03-06T16:00:00Z" }
+    ],
+    "direccion": {
+      "ubicacion": "Autopista Sur",
+      "zona": "5",
+      "calleAvenida": "Km 25"
+    },
+    "tiempos": {
+      "horaDespacho": "2024-03-06T15:35:00Z",
+      "horaLlegada": "2024-03-06T16:00:00Z",
+      "horaFinalizacion": "2024-03-06T16:45:00Z",
+      "tiempoDespacho": "5 min",
+      "tiempoLlegada": "25 min",
+      "tiempoAtencion": "45 min"
+    },
+    "costos": {
+      "servicio": "Mecánico",
+      "unidades": 1,
+      "kmTerracerias": 0,
+      "kmRecorrido": 15,
+      "kmVacio": 8,
+      "costoManiobra": 75,
+      "costoEspera": 30,
+      "tarifaBase": 120,
+      "tarifaKmTerracerias": 0,
+      "tarifaKmRecorrido": 6,
+      "tarifaKmVacio": 3
+    },
+    "proveedor": {
+      "nombre": "Mecánicos Rápidos",
+      "telefonos": ["654-321-9876"],
+      "tipo": "Mecánica",
+      "base": "Sucursal Norte"
+    }
+  },
+  {
+    "id": 3,
+    "numero": "B-003",
+    "fecha": "2024-03-05T09:00:00Z",
+    "estado": "Completado",
+    "tipo": "Reclamo",
+    "telefonos": ["555-678-1234"],
+    "siniestro": {
+      "tipo": "Robo",
+      "nombreReportante": "Sofía Méndez",
+      "nombrePiloto": "Raúl Torres",
+      "descripcion": "Vehículo robado en zona comercial",
+      "terceroCulpable": false,
+      "compromisoPago": true
+    },
+    "vehiculo": {
+      "marca": "Mazda",
+      "linea": "CX-5",
+      "color": "Negro",
+      "placa": "DEF-456",
+      "modelo": "2022",
+      "tipo": "SUV"
+    },
+    "asegurado": {
+      "numeroPoliza": "P-56789",
+      "titular": "Carlos López",
+      "intermediario": "Agente Z",
+      "tipoCliente": "Empresarial"
+    },
+    "reclamo": {
+      "numero": "R-003",
+      "analista": "Elena Ríos"
+    },
+    "observaciones": ["Investigación en curso"],
+    "servicios": [
+      { "id": 3, "tipo": "Investigación", "estado": "Finalizado" }
+    ],
+    "direccion": {
+      "ubicacion": "Centro Comercial",
+      "zona": "12",
+      "calleAvenida": "Av. Reforma"
+    },
+    "tiempos": {
+      "horaDespacho": "2024-03-05T09:10:00Z",
+      "horaLlegada": "2024-03-05T09:40:00Z",
+      "horaFinalizacion": "2024-03-05T11:00:00Z",
+      "tiempoDespacho": "10 min",
+      "tiempoLlegada": "30 min",
+      "tiempoAtencion": "1h 20m"
+    },
+    "costos": {
+      "servicio": "Investigación",
+      "unidades": 1,
+      "kmTerracerias": 0,
+      "kmRecorrido": 20,
+      "kmVacio": 10,
+      "costoManiobra": 150,
+      "costoEspera": 50,
+      "tarifaBase": 200,
+      "tarifaKmTerracerias": 0,
+      "tarifaKmRecorrido": 8,
+      "tarifaKmVacio": 4
+    },
+    "proveedor": {
+      "nombre": "Detectives S.A.",
+      "telefonos": ["777-123-4567"],
+      "tipo": "Investigación",
+      "base": "Oficina Central"
+    }
+  }
+]

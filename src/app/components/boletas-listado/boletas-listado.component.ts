@@ -1,144 +1,136 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { Router } from '@angular/router';
-import { BoletasService } from '../../services/boletas.service';
-import { BoletaFiltros, BoletaListado, Boleta } from '../../interfaces/boleta.interface';
-
+import { ButtonModule } from 'primeng/button';
+import { TableModule } from 'primeng/table';
+import { TagModule } from 'primeng/tag';
+import { AccordionModule } from 'primeng/accordion';
+import { RippleModule } from 'primeng/ripple';
+import { Boleta, EstadoBoleta } from '../../interfaces/boleta.interface';
+import { BoletaFilterService } from '../../services/table-filter.service';
+import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
+import { BoletasComponent } from '../boletas/boletas.component';
+import { Subscription } from 'rxjs';
+import Boletas from './boletas.json';
 @Component({
   selector: 'app-boletas-listado',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterModule,
+    ButtonModule,
+    TableModule,
+    TagModule,
+    AccordionModule,
+    RippleModule,
+  ],
   templateUrl: './boletas-listado.component.html',
-  styleUrls: ['./boletas-listado.component.css']
+  styleUrls: ['./boletas-listado.component.scss'],
+  providers: [DialogService],
 })
-export class BoletasListadoComponent implements OnInit {
-  tipoBusqueda: 'general' | 'numero' = 'general';
-  numeroBoleta: string = '';
-  mostrarBusquedaNumero: boolean = false;
-  
-  filtros: BoletaFiltros = {
-    fechaInicio: new Date(),
-    fechaFin: new Date()
-  };
-  
-  boletas: BoletaListado[] = [];
-  cargando = false;
-  error: string | null = null;
-
-  // Opciones para los selectores
-  operadores: string[] = ['Operador 1', 'Operador 2', 'Operador 3'];
-  estados: string[] = ['Activo', 'Pendiente', 'Completado', 'Cancelado'];
-  tiposSiniestro: string[] = ['Asistencia', 'Robo', 'Accidente'];
-  servicios: string[] = ['Grúa', 'Mecánico', 'Cerrajero'];
-  origenesBoleta: string[] = ['CAB', 'Web', 'App'];
-  despachadores: string[] = ['Despachador 1', 'Despachador 2', 'Despachador 3'];
+export class BoletasListadoComponent implements OnInit, OnDestroy {
+  boletas: Boleta[] = [];
+  filteredBoletas: Boleta[] = [];
+  loading: boolean = true;
+  filterSubscription: Subscription | undefined;
+  ref: DynamicDialogRef | undefined;
+  expandedRows: { [key: string]: boolean } = {};
 
   constructor(
-    private boletasService: BoletasService,
-    private router: Router
+    private boletaFilterService: BoletaFilterService,
+    private dialogService: DialogService
   ) {}
 
   ngOnInit(): void {
-    this.buscarBoletas();
+    setTimeout(() => {
+      this.boletas = Boletas as unknown as Boleta[];
+      this.filteredBoletas = [...this.boletas];
+      this.loading = false;
+    }, 500);
+
+    this.filterSubscription = this.boletaFilterService.filter$.subscribe((filter) => {
+      this.applyFilter(filter);
+    });
   }
 
-  cambiarTipoBusqueda(tipo: 'general' | 'numero'): void {
-    console.log('Cambiando tipo de búsqueda a:', tipo);
-    this.tipoBusqueda = tipo;
-    this.mostrarBusquedaNumero = tipo === 'numero';
-    this.error = null;
-    this.boletas = [];
-    this.numeroBoleta = '';
-  }
-
-  buscarBoletas(): void {
-    console.log('Buscando boletas. Tipo:', this.tipoBusqueda);
-    if (this.tipoBusqueda === 'numero' && !this.numeroBoleta.trim()) {
-      this.error = 'Ingrese un número de boleta';
-      return;
+  ngOnDestroy(): void {
+    if (this.filterSubscription) {
+      this.filterSubscription.unsubscribe();
     }
+    if (this.ref) {
+      this.ref.close();
+    }
+  }
 
-    this.cargando = true;
-    this.error = null;
+  applyFilter(filter: any) {
+    if (!this.boletas || this.boletas.length === 0) return;
 
-    if (this.tipoBusqueda === 'numero') {
-      // Buscar por número y mostrar en la tabla
-      this.boletasService.getBoletas()
-        .subscribe({
-          next: (boletas) => {
-            const boletasFiltradas = boletas.filter(b => 
-              b.numero.toLowerCase().includes(this.numeroBoleta.toLowerCase().trim())
-            );
+    this.filteredBoletas = this.boletas.filter((boleta) => {
+      let match = true;
 
-            if (boletasFiltradas.length === 0) {
-              this.error = 'No se encontraron boletas con ese número';
-              this.boletas = [];
-            } else {
-              this.boletas = boletasFiltradas.map(b => ({
-                id: b.id,
-                numero: b.numero,
-                piloto: b.siniestro.nombrePiloto,
-                reportante: b.siniestro.nombreReportante,
-                poliza: b.asegurado.numeroPoliza,
-                direccion: b.direccion.ubicacion,
-                estado: b.estado,
-                tipoSiniestro: b.siniestro.tipo,
-                origen: b.tipo,
-                tipoBoleta: b.tipo
-              }));
-            }
-            this.cargando = false;
-          },
-          error: (error) => {
-            this.cargando = false;
-            this.error = 'Error al buscar las boletas';
-          }
-        });
+      if (filter.numero && !boleta.numero.toString().includes(filter.numero)) {
+        match = false;
+      }
+      if (filter.titular && !boleta.asegurado.titular.toLowerCase().includes(filter.titular.toLowerCase())) {
+        match = false;
+      }
+      if (filter.fecha) {
+        const boletaDate = new Date(boleta.fecha);
+        const filterDate = new Date(filter.fecha);
+        if (boletaDate.toDateString() !== filterDate.toDateString()) {
+          match = false;
+        }
+      }
+      if (filter.estado && boleta.estado !== filter.estado) {
+        match = false;
+      }
+      if (filter.tipo && boleta.tipo !== filter.tipo) {
+        match = false;
+      }
+
+      return match;
+    });
+  }
+
+  getSeverity(estado: EstadoBoleta) {
+    switch (estado) {
+      case EstadoBoleta.ACTIVO:
+        return 'success';
+      case EstadoBoleta.PENDIENTE:
+        return 'warn';
+      case EstadoBoleta.CANCELADO:
+        return 'danger';
+      case EstadoBoleta.COMPLETADO:
+        return 'info';
+      default:
+        return 'info';
+    }
+  }
+
+  openBoletasModal(boleta: Boleta) {
+    this.ref = this.dialogService.open(BoletasComponent, {
+      data: {
+        boleta: boleta,
+      },
+      width: '70vw',
+      height: '70vh',
+      modal: true,
+      maximizable: true,
+      closable: true,
+    });
+  }
+
+  toggleRow(boleta: Boleta) {
+    if (this.isRowExpanded(boleta)) {
+      delete this.expandedRows[boleta.id];
     } else {
-      // Búsqueda general con filtros
-      this.boletasService.getBoletas()
-        .subscribe({
-          next: (boletas) => {
-            this.boletas = boletas.map(b => ({
-              id: b.id,
-              numero: b.numero,
-              piloto: b.siniestro.nombrePiloto,
-              reportante: b.siniestro.nombreReportante,
-              poliza: b.asegurado.numeroPoliza,
-              direccion: b.direccion.ubicacion,
-              estado: b.estado,
-              tipoSiniestro: b.siniestro.tipo,
-              origen: b.tipo,
-              tipoBoleta: b.tipo
-            }));
-            this.cargando = false;
-          },
-          error: (error) => {
-            this.cargando = false;
-            this.error = 'Error al cargar las boletas';
-          }
-        });
+      this.expandedRows[boleta.id] = true;
     }
   }
 
-  limpiarFiltros(): void {
-    this.filtros = {
-      fechaInicio: new Date(),
-      fechaFin: new Date()
-    };
-    this.numeroBoleta = '';
-    this.boletas = [];
-    this.error = null;
+  isRowExpanded(boleta: Boleta): boolean {
+    return this.expandedRows[boleta.id] === true;
   }
-
-  onBuscarClick(): void {
-    console.log('Click en buscar. Tipo:', this.tipoBusqueda, 'Número:', this.numeroBoleta);
-    this.buscarBoletas();
-  }
-
-  verDetalle(id: number): void {
-    this.router.navigate(['/boletas', id]);
-  }
-} 
+}

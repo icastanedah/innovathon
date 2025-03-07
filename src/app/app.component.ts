@@ -1,12 +1,17 @@
 import { Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
-
+import { ButtonModule } from 'primeng/button';
+import { RouterModule } from '@angular/router';
+import { ToastModule } from 'primeng/toast';
 @Component({
   selector: 'app-root',
+  imports: [RouterModule, ButtonModule, ToastModule],
+  templateUrl: './app.component.html',
   standalone: true,
-  imports: [RouterOutlet],
-  template: '<router-outlet></router-outlet>'
 })
 export class AppComponent {
-  title = 'app-cabin';
+  title = 'bulk-insurance-policy-web';
+
+  constructor() {}
+
+
 }

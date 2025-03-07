@@ -1,213 +1,178 @@
-<div class="boletas-listado-container">
-  <!-- Barra de búsqueda principal -->
-  <div class="search-bar">
-    <!-- Tabs de búsqueda -->
-    <div class="search-tabs">
-      <button 
-        class="tab" 
-        [class.active]="tipoBusqueda === 'general'"
-        (click)="cambiarTipoBusqueda('general')">
-        <i class="fas fa-search"></i>
-        Búsqueda General
-      </button>
-      <button 
-        class="tab" 
-        [class.active]="tipoBusqueda === 'numero'"
-        (click)="cambiarTipoBusqueda('numero')">
-        <i class="fas fa-hashtag"></i>
-        Búsqueda por número de boleta
-      </button>
-    </div>
+<div class="card">
+  <div class="font-semibold text-xl mb-4">Listado de Boletas</div>
+  <p-table
+    [value]="filteredBoletas"
+    dataKey="id"
+    [rows]="10"
+    [loading]="loading"
+    [rowHover]="true"
+    [showGridlines]="true"
+    [paginator]="true"
+    [expandedRowKeys]="expandedRows"
+    responsiveLayout="scroll"
+  >
+    <ng-template pTemplate="header">
+      <tr>
+        <th style="width: 3rem"></th>
+        <th>Número</th>
+        <th>Titular</th>
+        <th>Fecha</th>
+        <th>Estado</th>
+        <th>Tipo</th>
+        <th>Acciones</th>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-boleta let-expanded="expanded">
+      <tr>
+        <td>
+          <button type="button" pButton pRipple (click)="toggleRow(boleta)" class="p-button-text p-button-rounded p-button-plain" [icon]="isRowExpanded(boleta) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"></button>
+        </td>
+        <td>{{ boleta.numero }}</td>
+        <td>{{ boleta.asegurado.titular }}</td>
+        <td>{{ boleta.fecha | date: 'dd/MM/yyyy' }}</td>
+        <td>
+          <p-tag [value]="boleta.estado" [severity]="getSeverity(boleta.estado)"></p-tag>
+        </td>
+        <td>{{ boleta.tipo }}</td>
+        <td>
+          <p-button label="Ver Rutas" (click)="openBoletasModal(boleta)"></p-button>
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #expandedrow  let-boleta>
+      <tr>
+        <td colspan="7">
+          <div class="p-3">
+            <p-accordion class="w-full">
+              <!-- Información General -->
+              <p-accordionTab header="Información General" [selected]="true">
+                <div class="space-y-2">
+                  <p><strong class="font-semibold">ID:</strong> {{ boleta.id }}</p>
+                  <p><strong class="font-semibold">Número:</strong> {{ boleta.numero }}</p>
+                  <p><strong class="font-semibold">Fecha:</strong> {{ boleta.fecha | date: 'dd/MM/yyyy HH:mm' }}</p>
+                  <p><strong class="font-semibold">Estado:</strong> {{ boleta.estado }}</p>
+                  <p><strong class="font-semibold">Tipo:</strong> {{ boleta.tipo }}</p>
+                  <p><strong class="font-semibold">Teléfonos:</strong> {{ boleta.telefonos.join(', ') }}</p>
+                </div>
+              </p-accordionTab>
 
-    <!-- Campo de búsqueda por número -->
-    <div class="search-input-container" *ngIf="tipoBusqueda === 'numero'">
-      <div class="search-input">
-        <i class="fas fa-hashtag"></i>
-        <input 
-          type="text" 
-          [(ngModel)]="numeroBoleta"
-          placeholder="Ingrese el número de boleta (ejemplo: BOL-001)"
-          (keyup.enter)="onBuscarClick()">
-      </div>
-      <div class="search-actions">
-        <button class="btn-buscar-numero" (click)="onBuscarClick()">
-          <i class="fas fa-search"></i>
-          Buscar
-        </button>
-        <button class="btn-limpiar-numero" (click)="limpiarFiltros()">
-          <i class="fas fa-times"></i>
-          Limpiar
-        </button>
-      </div>
-    </div>
+              <!-- Datos del Siniestro -->
+              <p-accordionTab header="Datos del Siniestro">
+                <div class="space-y-2">
+                  <p><strong class="font-semibold">Tipo:</strong> {{ boleta.siniestro.tipo }}</p>
+                  <p><strong class="font-semibold">Nombre Reportante:</strong> {{ boleta.siniestro.nombreReportante }}</p>
+                  <p><strong class="font-semibold">Nombre Piloto:</strong> {{ boleta.siniestro.nombrePiloto }}</p>
+                  <p><strong class="font-semibold">Descripción:</strong> {{ boleta.siniestro.descripcion }}</p>
+                  <p><strong class="font-semibold">Número Atención:</strong> {{ boleta.siniestro.numeroAtencion }}</p>
+                  <p><strong class="font-semibold">Tercero Culpable:</strong> {{ boleta.siniestro.terceroCulpable ? 'Sí' : 'No' }}</p>
+                  <p><strong class="font-semibold">Compromiso Pago:</strong> {{ boleta.siniestro.compromisoPago ? 'Sí' : 'No' }}</p>
+                </div>
+              </p-accordionTab>
 
-    @if (tipoBusqueda === 'numero' && !cargando && !error && boletas.length > 0) {
-      <div class="resultados-numero">
-        <p class="resultados-info">
-          <i class="fas fa-info-circle"></i>
-          Se encontraron {{boletas.length}} resultado(s) para el número "{{numeroBoleta}}"
-        </p>
-      </div>
-    }
-  </div>
+              <!-- Datos del Vehículo -->
+              <p-accordionTab header="Datos del Vehículo">
+                <div class="space-y-2">
+                  <p><strong class="font-semibold">Marca:</strong> {{ boleta.vehiculo.marca }}</p>
+                  <p><strong class="font-semibold">Línea:</strong> {{ boleta.vehiculo.linea }}</p>
+                  <p><strong class="font-semibold">Color:</strong> {{ boleta.vehiculo.color }}</p>
+                  <p><strong class="font-semibold">Placa:</strong> {{ boleta.vehiculo.placa }}</p>
+                  <p><strong class="font-semibold">Modelo:</strong> {{ boleta.vehiculo.modelo }}</p>
+                  <p><strong class="font-semibold">Tipo:</strong> {{ boleta.vehiculo.tipo }}</p>
+                  <p><strong class="font-semibold">Licencia:</strong> {{ boleta.vehiculo.licencia }}</p>
+                </div>
+              </p-accordionTab>
 
-  <!-- Filtros - Solo mostrar en búsqueda general -->
-  @if (tipoBusqueda === 'general') {
-    <div class="filtros-container">
-      <div class="filtros-grid">
-        <div class="filtro-item">
-          <label>Fecha Inicio:</label>
-          <input type="date" [(ngModel)]="filtros.fechaInicio">
-        </div>
+              <!-- Datos del Asegurado -->
+              <p-accordionTab header="Datos del Asegurado">
+                <div class="space-y-2">
+                  <p><strong class="font-semibold">Número Póliza:</strong> {{ boleta.asegurado.numeroPoliza }}</p>
+                  <p><strong class="font-semibold">Titular:</strong> {{ boleta.asegurado.titular }}</p>
+                  <p><strong class="font-semibold">Intermediario:</strong> {{ boleta.asegurado.intermediario }}</p>
+                  <p><strong class="font-semibold">Tipo Cliente:</strong> {{ boleta.asegurado.tipoCliente }}</p>
+                </div>
+              </p-accordionTab>
 
-        <div class="filtro-item">
-          <label>Fecha Fin:</label>
-          <input type="date" [(ngModel)]="filtros.fechaFin">
-        </div>
+              <!-- Datos del Reclamo -->
+              <p-accordionTab header="Datos del Reclamo">
+                <div class="space-y-2">
+                  <p><strong class="font-semibold">Número:</strong> {{ boleta.reclamo.numero }}</p>
+                  <p><strong class="font-semibold">Analista:</strong> {{ boleta.reclamo.analista }}</p>
+                </div>
+              </p-accordionTab>
 
-        <div class="filtro-item">
-          <label>Nombre Cliente:</label>
-          <input type="text" [(ngModel)]="filtros.nombreCliente">
-        </div>
+              <!-- Dirección del Siniestro -->
+              <p-accordionTab header="Dirección del Siniestro">
+                <div class="space-y-2">
+                  <p><strong class="font-semibold">Ubicación:</strong> {{ boleta.direccion.ubicacion }}</p>
+                  <p><strong class="font-semibold">Zona:</strong> {{ boleta.direccion.zona }}</p>
+                  <p><strong class="font-semibold">Calle/Avenida:</strong> {{ boleta.direccion.calleAvenida }}</p>
+                  <p><strong class="font-semibold">Número Casa:</strong> {{ boleta.direccion.numeroCasa }}</p>
+                  <p><strong class="font-semibold">Referencia:</strong> {{ boleta.direccion.referencia }}</p>
+                </div>
+              </p-accordionTab>
 
-        <div class="filtro-item">
-          <label>Operador:</label>
-          <select [(ngModel)]="filtros.operador">
-            <option value="">-Todos-</option>
-            @for (operador of operadores; track operador) {
-              <option [value]="operador">{{operador}}</option>
-            }
-          </select>
-        </div>
+              <!-- Servicios -->
+              <p-accordionTab header="Servicios">
+                <div *ngFor="let servicio of boleta.servicios" class="mb-4">
+                  <p><strong class="font-semibold">Tipo:</strong> {{ servicio.tipo }}</p>
+                  <p><strong class="font-semibold">Estado:</strong> {{ servicio.estado }}</p>
+                  <p><strong class="font-semibold">Fecha Asignación:</strong> {{ servicio.fechaAsignacion | date: 'dd/MM/yyyy HH:mm' }}</p>
+                </div>
+              </p-accordionTab>
 
-        <div class="filtro-item">
-          <label>Estado:</label>
-          <select [(ngModel)]="filtros.estado">
-            <option value="">-Todos-</option>
-            @for (estado of estados; track estado) {
-              <option [value]="estado">{{estado}}</option>
-            }
-          </select>
-        </div>
+              <!-- Tiempos de la Boleta -->
+              <p-accordionTab header="Tiempos de la Boleta">
+                <div class="space-y-2">
+                  <p><strong class="font-semibold">Hora Despacho:</strong> {{ boleta.tiempos.horaDespacho | date: 'dd/MM/yyyy HH:mm' }}</p>
+                  <p><strong class="font-semibold">Hora Llegada:</strong> {{ boleta.tiempos.horaLlegada | date: 'dd/MM/yyyy HH:mm' }}</p>
+                  <p><strong class="font-semibold">Hora Finalización:</strong> {{ boleta.tiempos.horaFinalizacion | date: 'dd/MM/yyyy HH:mm' }}</p>
+                  <p><strong class="font-semibold">Tiempo Despacho:</strong> {{ boleta.tiempos.tiempoDespacho }}</p>
+                  <p><strong class="font-semibold">Tiempo Llegada:</strong> {{ boleta.tiempos.tiempoLlegada }}</p>
+                  <p><strong class="font-semibold">Tiempo Atención:</strong> {{ boleta.tiempos.tiempoAtencion }}</p>
+                  <p><strong class="font-semibold">Tiempo Estimado:</strong> {{ boleta.tiempos.tiempoEstimado }}</p>
+                </div>
+              </p-accordionTab>
 
-        <div class="filtro-item">
-          <label>Tipo de Siniestro:</label>
-          <select [(ngModel)]="filtros.tipoSiniestro">
-            <option value="">-Todos-</option>
-            @for (tipo of tiposSiniestro; track tipo) {
-              <option [value]="tipo">{{tipo}}</option>
-            }
-          </select>
-        </div>
+              <!-- Costos de la Boleta -->
+              <p-accordionTab header="Costos de la Boleta">
+                <div class="space-y-2">
+                  <p><strong class="font-semibold">Servicio:</strong> {{ boleta.costos.servicio }}</p>
+                  <p><strong class="font-semibold">Unidades:</strong> {{ boleta.costos.unidades }}</p>
+                  <p><strong class="font-semibold">KM Terracerías:</strong> {{ boleta.costos.kmTerracerias }}</p>
+                  <p><strong class="font-semibold">KM Recorrido:</strong> {{ boleta.costos.kmRecorrido }}</p>
+                  <p><strong class="font-semibold">KM Vacío:</strong> {{ boleta.costos.kmVacio }}</p>
+                  <p><strong class="font-semibold">Costo Maniobra:</strong> {{ boleta.costos.costoManiobra }}</p>
+                  <p><strong class="font-semibold">Costo Espera:</strong> {{ boleta.costos.costoEspera }}</p>
+                  <p><strong class="font-semibold">Tarifa Base:</strong> {{ boleta.costos.tarifaBase }}</p>
+                  <p><strong class="font-semibold">Tarifa KM Terracerías:</strong> {{ boleta.costos.tarifaKmTerracerias }}</p>
+                  <p><strong class="font-semibold">Tarifa KM Recorrido:</strong> {{ boleta.costos.tarifaKmRecorrido }}</p>
+                  <p><strong class="font-semibold">Tarifa KM Vacío:</strong> {{ boleta.costos.tarifaKmVacio }}</p>
+                </div>
+              </p-accordionTab>
 
-        <div class="filtro-item">
-          <label>Servicio:</label>
-          <select [(ngModel)]="filtros.servicio">
-            <option value="">-Todos-</option>
-            @for (servicio of servicios; track servicio) {
-              <option [value]="servicio">{{servicio}}</option>
-            }
-          </select>
-        </div>
-
-        <div class="filtro-item">
-          <label>Origen de Boleta:</label>
-          <select [(ngModel)]="filtros.origenBoleta">
-            <option value="">-Todos-</option>
-            @for (origen of origenesBoleta; track origen) {
-              <option [value]="origen">{{origen}}</option>
-            }
-          </select>
-        </div>
-
-        <div class="filtro-item">
-          <label>Despachador:</label>
-          <select [(ngModel)]="filtros.despachador">
-            <option value="">-Todos-</option>
-            @for (despachador of despachadores; track despachador) {
-              <option [value]="despachador">{{despachador}}</option>
-            }
-          </select>
-        </div>
-      </div>
-
-      <div class="filtros-actions">
-        <button class="btn-buscar" (click)="onBuscarClick()">
-          <i class="fas fa-search"></i>
-          Buscar
-        </button>
-        <button class="btn-limpiar" (click)="limpiarFiltros()">
-          <i class="fas fa-times"></i>
-          Limpiar Filtros
-        </button>
-      </div>
-    </div>
-  }
-
-  <!-- Tabla de resultados -->
-  @if (cargando) {
-    <div class="loading-container">
-      <div class="loader"></div>
-      <p>Cargando resultados...</p>
-    </div>
-  } @else if (error) {
-    <div class="error-container">
-      <i class="fas fa-exclamation-circle"></i>
-      <p>{{error}}</p>
-    </div>
-  } @else if (boletas.length === 0) {
-    <div class="no-results">
-      <i class="fas fa-search"></i>
-      <p>No se encontraron resultados</p>
-    </div>
-  } @else {
-    <div class="table-container">
-      <table class="boletas-table">
-        <thead>
-          <tr>
-            <th>No. Boleta</th>
-            <th>Piloto</th>
-            <th>Reportante</th>
-            <th>Póliza</th>
-            <th>Dirección</th>
-            <th>Estado</th>
-            <th>Tipo Siniestro</th>
-            <th>Origen</th>
-            <th>Tipo Boleta</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (boleta of boletas; track $index) {
-            <tr>
-              <td>{{boleta.numero}}</td>
-              <td>{{boleta.piloto}}</td>
-              <td>{{boleta.reportante}}</td>
-              <td>{{boleta.poliza}}</td>
-              <td>{{boleta.direccion}}</td>
-              <td>
-                <span class="estado-badge" [class]="'estado-' + boleta.estado.toLowerCase()">
-                  {{boleta.estado}}
-                </span>
-              </td>
-              <td>{{boleta.tipoSiniestro}}</td>
-              <td>{{boleta.origen}}</td>
-              <td>{{boleta.tipoBoleta}}</td>
-              <td class="acciones">
-                <button class="btn-accion ver" (click)="verDetalle(boleta.id)" title="Ver detalle">
-                  <i class="fas fa-eye"></i>
-                </button>
-                <button class="btn-accion editar" title="Editar">
-                  <i class="fas fa-edit"></i>
-                </button>
-                <button class="btn-accion imprimir" title="Imprimir">
-                  <i class="fas fa-print"></i>
-                </button>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-  }
-</div> 
+              <!-- Datos del Proveedor -->
+              <p-accordionTab header="Datos del Proveedor">
+                <div class="space-y-2">
+                  <p><strong class="font-semibold">Nombre:</strong> {{ boleta.proveedor.nombre }}</p>
+                  <p><strong class="font-semibold">Teléfonos:</strong> {{ boleta.proveedor.telefonos.join(', ') }}</p>
+                  <p><strong class="font-semibold">Tipo:</strong> {{ boleta.proveedor.tipo }}</p>
+                  <p><strong class="font-semibold">Base:</strong> {{ boleta.proveedor.base }}</p>
+                </div>
+              </p-accordionTab>
+            </p-accordion>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="emptymessage">
+      <tr>
+        <td colspan="7">No se encontraron boletas.</td>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="loadingbody">
+      <tr>
+        <td colspan="7">Cargando boletas. Por favor, espere.</td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>
