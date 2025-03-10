@@ -1,0 +1,11 @@
+{
+  "/api": {
+    "target": "https://innovathon-453207-service-542279195211.us-central1.run.app",
+    "secure": true,
+    "changeOrigin": true,
+    "pathRewrite": {
+      "^/api": ""
+    },
+    "logLevel": "debug"
+  }
+}

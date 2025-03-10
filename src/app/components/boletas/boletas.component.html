@@ -9,6 +9,20 @@
         <ng-template #content let-activateCallback="activateCallback">
           <div class="p-4">
             <div class="mb-4">
+              <h3 class="text-lg font-semibold mb-2">Tipo de servicio</h3>
+              <div class="grid grid-cols-1 md:grid-cols-5 gap-2">
+                <div *ngFor="let option of serviceOptions" 
+                     class="p-2 border rounded cursor-pointer text-center transition-all"
+                     [class.bg-blue-100]="serviceType === option.value"
+                     [class.border-blue-500]="serviceType === option.value"
+                     [class.border-gray-300]="serviceType !== option.value"
+                     (click)="serviceType = option.value; onServiceTypeChange()">
+                  <i [class]="getServiceIcon(option.value)" class="block text-2xl mb-2"></i>
+                  <span class="text-sm">{{ option.label }}</span>
+                </div>
+              </div>
+              
+              <h3 class="text-lg font-semibold mb-2 mt-4">Ubicación</h3>
               <input
                 type="text"
                 pInputText
@@ -22,6 +36,16 @@
                 (click)="buscarDireccion()"
                 class="mt-2"
               ></button>
+              
+              <h3 class="text-lg font-semibold mt-4 mb-2">Información del vehículo</h3>
+              <input
+                type="text"
+                pInputText
+                [(ngModel)]="vehiculo"
+                placeholder="Ej: Toyota Corolla 2020"
+                class="w-full"
+              />
+              <small class="text-gray-500">Ingrese marca, modelo y año del vehículo</small>
             </div>
             <div id="map" style="height: 400px"></div>
             <div class="mt-4">
@@ -29,6 +53,8 @@
                 pButton
                 label="Confirmar dirección"
                 (click)="confirmarDireccion()"
+                [disabled]="!direccion || !vehiculo"
+                class="p-button-primary"
               ></button>
             </div>
           </div>
@@ -37,18 +63,35 @@
 
       <p-step-panel [value]="2">
         <ng-template #content let-activateCallback="activateCallback">
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="mb-4">
+            <h2 class="text-xl font-bold">Proveedores disponibles para {{ direccion }}</h2>
+            <p class="text-gray-600">Servicio: {{ serviceTypeLabel }}</p>
+            <p class="text-gray-600">Vehículo: {{ vehiculo }}</p>
+          </div>
+          
+          <div *ngIf="isLoading" class="flex justify-center my-8">
+            <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+            <span class="ml-2">Buscando proveedores cercanos...</span>
+          </div>
+          
+          <div *ngIf="!isLoading" class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div *ngFor="let route of routeOptions">
-              <p-card [header]="route.name">
+              <p-card 
+                [header]="route.name" 
+                [style]="{'cursor': 'pointer', 'border': selectedRoute === route ? '2px solid #3B82F6' : 'none'}"
+                (click)="selectRoute(route)"
+              >
                 <ng-template pTemplate="header">
                   <div class="flex justify-center mt-3">
                     <i [ngClass]="route.icon" style="font-size: 2.0rem"></i>
                   </div>
                 </ng-template>
-                <p>Duración: {{ route.duration }}</p>
+                <div class="text-center mb-3">
+                  <h3 class="text-lg font-semibold">{{ route.provider?.name }}</h3>
+                </div>
+                <p>Tiempo estimado: {{ route.duration }}</p>
                 <p>Distancia: {{ route.distance }}</p>
                 <p>Descripción: {{ route.description }}</p>
-                <p>Peaje: {{ route.toll ? 'Sí' : 'No' }}</p>
                 <p>Tráfico: {{ route.traffic }}</p>
                 <ng-template pTemplate="footer">
                   <div [style]="{ 'background-color': getBackgroundColor(route.color) }" style="height: 10px;"></div>
@@ -57,6 +100,44 @@
             </div>
           </div>
 
+          <!-- Selected Provider Information -->
+          <div class="mt-5" *ngIf="!isLoading && selectedRoute && nearestProvider">
+            <h2 class="text-xl font-bold mb-3">Detalles del proveedor</h2>
+            <p-card>
+              <ng-template pTemplate="header">
+                <div class="flex justify-between p-3">
+                  <h3 class="text-lg font-semibold">{{ nearestProvider.name }}</h3>
+                  <div class="flex items-center" *ngIf="nearestProvider.rating">
+                    <span class="mr-1">{{ nearestProvider.rating }}</span>
+                    <i class="pi pi-star-fill text-yellow-500"></i>
+                  </div>
+                </div>
+              </ng-template>
+              
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p class="mb-2" *ngIf="nearestProvider.address"><i class="pi pi-map-marker mr-2"></i>{{ nearestProvider.address }}</p>
+                  <p class="mb-2" *ngIf="nearestProvider.phone"><i class="pi pi-phone mr-2"></i>{{ nearestProvider.phone }}</p>
+                  <p class="mb-2" *ngIf="nearestProvider.openHours"><i class="pi pi-clock mr-2"></i>{{ nearestProvider.openHours }}</p>
+                  <p class="mb-2"><i class="pi pi-car mr-2"></i>Distancia: {{ nearestProvider.distance }}</p>
+                  <p class="mb-2" *ngIf="nearestProvider.time"><i class="pi pi-stopwatch mr-2"></i>Tiempo estimado: {{ nearestProvider.time }}</p>
+                </div>
+                <div *ngIf="nearestProvider.services && nearestProvider.services.length > 0">
+                  <h4 class="font-semibold mb-2">Servicios disponibles:</h4>
+                  <ul class="list-disc pl-5">
+                    <li *ngFor="let service of nearestProvider.services">{{ service }}</li>
+                  </ul>
+                </div>
+              </div>
+              
+              <ng-template pTemplate="footer">
+                <div class="flex justify-end">
+                  <button pButton label="Contactar" icon="pi pi-envelope" class="mr-2"></button>
+                  <button pButton label="Solicitar servicio" icon="pi pi-check" class="p-button-success"></button>
+                </div>
+              </ng-template>
+            </p-card>
+          </div>
         </ng-template>
       </p-step-panel>
     </p-step-panels>
