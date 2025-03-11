@@ -1,0 +1,89 @@
+@import '../shared/design-system.css';
+
+.boleta-container {
+  padding: var(--spacing-4);
+  background-color: var(--gray-50);
+  min-height: 100vh;
+}
+
+.seccion {
+  background-color: var(--white);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-5);
+  margin-bottom: var(--spacing-4);
+  box-shadow: var(--shadow);
+}
+
+.form-control {
+  margin-bottom: var(--spacing-4);
+}
+
+.form-label {
+  display: block;
+  margin-bottom: var(--spacing-2);
+  font-weight: 500;
+  color: var(--gray-700);
+}
+
+.form-input {
+  width: 100%;
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 1px solid var(--gray-300);
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-base);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-input:focus {
+  border-color: var(--primary);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.2);
+}
+
+.action-bar {
+  display: flex;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-4);
+  flex-wrap: wrap;
+}
+
+.btn {
+  padding: var(--spacing-2) var(--spacing-4);
+  border: none;
+  border-radius: var(--border-radius);
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--primary-dark);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .boleta-container {
+    padding: var(--spacing-2);
+  }
+
+  .action-bar {
+    flex-direction: column;
+  }
+
+  .action-bar button {
+    width: 100%;
+  }
+}

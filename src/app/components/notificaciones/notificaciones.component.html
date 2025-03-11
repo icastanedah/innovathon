@@ -1,0 +1,234 @@
+<div class="container mx-auto p-4">
+  <div class="bg-white shadow-md rounded-lg p-6">
+    <h2 class="text-2xl font-bold mb-4">Monitoreo de Incidentes</h2>
+
+    <div class="mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="text-lg font-semibold">Estado del Monitoreo</h3>
+          <p class="text-gray-600">{{ mensajeEstado }}</p>
+          <p *ngIf="errorMensaje" class="text-red-600 mt-2">{{ errorMensaje }}</p>
+
+          <!-- Indicador de carga -->
+          <div *ngIf="cargando" class="mt-2 flex items-center">
+            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2"></div>
+            <span class="text-blue-500">Procesando...</span>
+          </div>
+        </div>
+        <div>
+          <button
+            (click)="toggleMonitoreo()"
+            class="px-4 py-2 rounded-md font-medium"
+            [ngClass]="endpointActivo ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-green-500 hover:bg-green-600 text-white'"
+            [disabled]="cargando"
+          >
+            {{ endpointActivo ? 'Desactivar Monitoreo' : 'Activar Monitoreo' }}
+          </button>
+        </div>
+      </div>
+
+      <div *ngIf="endpointActivo" class="mt-4 p-4 bg-blue-50 rounded-md">
+        <p class="text-blue-700">
+          <strong>API configurada:</strong> http://localhost:8081/api/angular/incidents
+        </p>
+        <p class="text-sm text-blue-600 mt-1">
+          El sistema está consultando periódicamente esta API para obtener los incidentes disponibles.
+        </p>
+      </div>
+    </div>
+
+    <!-- Lista de incidentes -->
+    <div *ngIf="endpointActivo && incidentes.length > 0" class="mt-6 border-t border-gray-200 pt-4">
+      <h3 class="text-xl font-semibold mb-4">Incidentes Disponibles</h3>
+
+      <div class="grid grid-cols-1 gap-4">
+        <div *ngFor="let incidente of incidentes; let i = index" class="bg-gray-50 p-4 rounded-md border border-gray-200 hover:border-blue-300 transition-colors">
+          <div class="flex justify-between items-start">
+            <div>
+              <h4 class="font-semibold text-lg">Incidente #{{ i + 1 }}</h4>
+              <p class="text-gray-700">
+                <span class="font-medium">ID:</span> {{ incidente.incident_id }}
+              </p>
+              <p class="text-gray-700">
+                <span class="font-medium">Tipo:</span> {{ incidente.incident_info.damage_type }}
+              </p>
+              <p class="text-gray-700">
+                <span class="font-medium">Severidad:</span> {{ incidente.incident_info.severity }}
+              </p>
+              <p class="text-gray-700">
+                <span class="font-medium">Descripción:</span> {{ incidente.incident_info.description }}
+              </p>
+              <p class="text-gray-700">
+                <span class="font-medium">Vehículo:</span> {{ incidente.vehicle_info.make }} {{ incidente.vehicle_info.model }} ({{ incidente.vehicle_info.plate }})
+              </p>
+              <p class="text-gray-700">
+                <span class="font-medium">Ubicación:</span> {{ incidente.location.address }}
+              </p>
+              <p class="text-gray-700">
+                <span class="font-medium">Fecha:</span> {{ incidente.timestamp | date:'dd/MM/yyyy HH:mm' }}
+              </p>
+              <p class="text-gray-700">
+                <span class="font-medium">Estado:</span> {{ incidente.status }}
+              </p>
+              <div *ngIf="incidente.images && incidente.images.length > 0" class="mt-2">
+                <p class="font-medium text-gray-700">Imágenes:</p>
+                <div class="flex flex-wrap gap-2 mt-1">
+                  <div *ngFor="let imagen of incidente.images" class="w-24 h-24 overflow-hidden rounded border border-gray-300">
+                    <img [src]="imagen.url" [alt]="imagen.type" class="w-full h-full object-cover">
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="flex flex-col gap-2">
+              <button
+                (click)="procesarIncidente(i)"
+                class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md font-medium"
+                [disabled]="procesandoIncidente"
+                [ngClass]="{'opacity-50 cursor-not-allowed': procesandoIncidente}"
+              >
+                Procesar
+              </button>
+              <button
+                (click)="buscarProveedores(i)"
+                class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md font-medium"
+                [disabled]="procesandoIncidente"
+                [ngClass]="{'opacity-50 cursor-not-allowed': procesandoIncidente}"
+              >
+                Buscar Proveedores
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mensaje cuando no hay incidentes -->
+    <div *ngIf="endpointActivo && incidentes.length === 0 && !cargando" class="mt-6 border-t border-gray-200 pt-4">
+      <div class="bg-gray-50 p-4 rounded-md text-center">
+        <p class="text-gray-600">No hay incidentes disponibles en este momento.</p>
+      </div>
+    </div>
+
+    <!-- Modal de Boleta Creada -->
+    <div *ngIf="boletaCreada && mostrarDetalles" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50 overflow-hidden">
+      <div class="relative bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <!-- Cabecera del modal -->
+        <div class="sticky top-0 bg-white p-4 border-b border-gray-200 flex justify-between items-center">
+          <h2 class="text-xl font-bold text-gray-800">
+            Detalles de Boleta {{ boletaCreada ? boletaCreada.numero : '' }}
+          </h2>
+          <button
+            (click)="limpiarDatos()"
+            class="text-gray-500 hover:text-gray-700 focus:outline-none"
+            type="button"
+          >
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Contenido del modal -->
+        <div class="p-6">
+          <!-- Información general de la boleta -->
+          <div class="mb-6">
+            <h3 class="text-lg font-semibold mb-3 text-blue-600 border-b pb-2">Información General</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p class="text-gray-700"><span class="font-medium">Número:</span> {{ boletaCreada ? boletaCreada.numero : '' }}</p>
+                <p class="text-gray-700"><span class="font-medium">Fecha:</span> {{ (boletaCreada ? boletaCreada.fecha : null) | date:'dd/MM/yyyy HH:mm' }}</p>
+              </div>
+              <div>
+                <p class="text-gray-700"><span class="font-medium">Estado:</span> {{ boletaCreada ? boletaCreada.estado : '' }}</p>
+                <p class="text-gray-700"><span class="font-medium">Tipo:</span> {{ boletaCreada ? boletaCreada.tipo : '' }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Información del incidente -->
+          <div class="mb-6">
+            <h3 class="text-lg font-semibold mb-3 text-blue-600 border-b pb-2">Información del Incidente</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p class="text-gray-700"><span class="font-medium">Tipo:</span> {{ boletaCreada ? boletaCreada.siniestro?.tipo : '' }}</p>
+                <p class="text-gray-700"><span class="font-medium">Reportante:</span> {{ boletaCreada ? boletaCreada.siniestro?.nombreReportante : '' }}</p>
+              </div>
+              <div>
+                <p class="text-gray-700"><span class="font-medium">Piloto:</span> {{ boletaCreada ? boletaCreada.siniestro?.nombrePiloto : '' }}</p>
+                <p class="text-gray-700"><span class="font-medium">Descripción:</span> {{ boletaCreada ? boletaCreada.siniestro?.descripcion : '' }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Información del vehículo -->
+          <div class="mb-6">
+            <h3 class="text-lg font-semibold mb-3 text-blue-600 border-b pb-2">Información del Vehículo</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <p class="text-gray-700"><span class="font-medium">Marca:</span> {{ boletaCreada ? boletaCreada.vehiculo?.marca : '' }}</p>
+                <p class="text-gray-700"><span class="font-medium">Modelo:</span> {{ boletaCreada ? boletaCreada.vehiculo?.linea : '' }}</p>
+              </div>
+              <div>
+                <p class="text-gray-700"><span class="font-medium">Año:</span> {{ boletaCreada ? boletaCreada.vehiculo?.modelo : '' }}</p>
+                <p class="text-gray-700"><span class="font-medium">Color:</span> {{ boletaCreada ? boletaCreada.vehiculo?.color : '' }}</p>
+              </div>
+              <div>
+                <p class="text-gray-700"><span class="font-medium">Placa:</span> {{ boletaCreada ? boletaCreada.vehiculo?.placa : '' }}</p>
+                <p class="text-gray-700"><span class="font-medium">Tipo:</span> {{ boletaCreada ? boletaCreada.vehiculo?.tipo : '' }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Información de la ubicación -->
+          <div class="mb-6">
+            <h3 class="text-lg font-semibold mb-3 text-blue-600 border-b pb-2">Información de la Ubicación</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p class="text-gray-700"><span class="font-medium">Dirección:</span> {{ boletaCreada ? boletaCreada.direccion?.ubicacion : '' }}</p>
+                <p class="text-gray-700"><span class="font-medium">Zona:</span> {{ boletaCreada ? boletaCreada.direccion?.zona : '' }}</p>
+              </div>
+              <div>
+                <p class="text-gray-700"><span class="font-medium">Calle/Avenida:</span> {{ boletaCreada ? boletaCreada.direccion?.calleAvenida : '' }}</p>
+                <p class="text-gray-700"><span class="font-medium">Referencia:</span> {{ boletaCreada ? boletaCreada.direccion?.referencia : '' }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Servicios -->
+          <div class="mb-6">
+            <h3 class="text-lg font-semibold mb-3 text-blue-600 border-b pb-2">Servicios</h3>
+            <div class="overflow-x-auto">
+              <table class="min-w-full bg-white border border-gray-200">
+                <thead>
+                  <tr>
+                    <th class="py-2 px-4 border-b text-left">Tipo</th>
+                    <th class="py-2 px-4 border-b text-left">Estado</th>
+                    <th class="py-2 px-4 border-b text-left">Fecha Asignación</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let servicio of (boletaCreada ? boletaCreada.servicios : [])">
+                    <td class="py-2 px-4 border-b">{{ servicio.tipo }}</td>
+                    <td class="py-2 px-4 border-b">{{ servicio.estado }}</td>
+                    <td class="py-2 px-4 border-b">{{ servicio.fechaAsignacion | date:'dd/MM/yyyy HH:mm' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Botones de acción -->
+          <div class="flex justify-end mt-6">
+            <button
+              (click)="limpiarDatos()"
+              class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md font-medium mr-2"
+              type="button"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

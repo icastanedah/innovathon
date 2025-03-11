@@ -11,7 +11,7 @@
             <div class="mb-4">
               <h3 class="text-lg font-semibold mb-2">Tipo de servicio</h3>
               <div class="grid grid-cols-1 md:grid-cols-5 gap-2">
-                <div *ngFor="let option of serviceOptions" 
+                <div *ngFor="let option of serviceOptions"
                      class="p-2 border rounded cursor-pointer text-center transition-all"
                      [class.bg-blue-100]="serviceType === option.value"
                      [class.border-blue-500]="serviceType === option.value"
@@ -21,7 +21,7 @@
                   <span class="text-sm">{{ option.label }}</span>
                 </div>
               </div>
-              
+
               <h3 class="text-lg font-semibold mb-2 mt-4">Ubicación</h3>
               <input
                 type="text"
@@ -36,7 +36,7 @@
                 (click)="buscarDireccion()"
                 class="mt-2"
               ></button>
-              
+
               <h3 class="text-lg font-semibold mt-4 mb-2">Información del vehículo</h3>
               <input
                 type="text"
@@ -68,16 +68,16 @@
             <p class="text-gray-600">Servicio: {{ serviceTypeLabel }}</p>
             <p class="text-gray-600">Vehículo: {{ vehiculo }}</p>
           </div>
-          
+
           <div *ngIf="isLoading" class="flex justify-center my-8">
             <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
             <span class="ml-2">Buscando proveedores cercanos...</span>
           </div>
-          
+
           <div *ngIf="!isLoading" class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div *ngFor="let route of routeOptions">
-              <p-card 
-                [header]="route.name" 
+              <p-card
+                [header]="route.name"
                 [style]="{'cursor': 'pointer', 'border': selectedRoute === route ? '2px solid #3B82F6' : 'none'}"
                 (click)="selectRoute(route)"
               >
@@ -94,7 +94,7 @@
                 <p>Descripción: {{ route.description }}</p>
                 <p>Tráfico: {{ route.traffic }}</p>
                 <ng-template pTemplate="footer">
-                  <div [style]="{ 'background-color': getBackgroundColor(route.color) }" style="height: 10px;"></div>
+                  <div [style]="{ 'background-color': getBackgroundColor(route.color) }" style="height: 10px; width: 100%; border-radius: 0 0 4px 4px;"></div>
                 </ng-template>
               </p-card>
             </div>
@@ -113,7 +113,7 @@
                   </div>
                 </div>
               </ng-template>
-              
+
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <p class="mb-2" *ngIf="nearestProvider.address"><i class="pi pi-map-marker mr-2"></i>{{ nearestProvider.address }}</p>
@@ -129,7 +129,7 @@
                   </ul>
                 </div>
               </div>
-              
+
               <ng-template pTemplate="footer">
                 <div class="flex justify-end">
                   <button pButton label="Contactar" icon="pi pi-envelope" class="mr-2"></button>

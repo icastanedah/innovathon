@@ -16,12 +16,22 @@ import { LayoutService } from '../service/layout.service';
                 <i class="pi pi-bars"></i>
             </button>
             <a class="layout-topbar-logo" routerLink="/">
-
                 <span>CABINA</span>
             </a>
         </div>
 
         <div class="layout-topbar-actions">
+            <div class="layout-topbar-menu">
+                <a routerLink="/boletas" class="layout-topbar-action mr-2">
+                    <i class="pi pi-ticket"></i>
+                    <span>Boletas</span>
+                </a>
+                <a routerLink="/notificaciones" class="layout-topbar-action mr-2">
+                    <i class="pi pi-bell"></i>
+                    <span>Notificaciones</span>
+                </a>
+            </div>
+
             <div class="layout-config-menu">
                 <button type="button" class="layout-topbar-action" (click)="toggleDarkMode()">
                     <i [ngClass]="{ 'pi ': true, 'pi-moon': layoutService.isDarkTheme(), 'pi-sun': !layoutService.isDarkTheme() }"></i>
@@ -45,7 +55,6 @@ import { LayoutService } from '../service/layout.service';
             <button class="layout-topbar-menu-button layout-topbar-action" pStyleClass="@next" enterFromClass="hidden" enterActiveClass="animate-scalein" leaveToClass="hidden" leaveActiveClass="animate-fadeout" [hideOnOutsideClick]="true">
                 <i class="pi pi-ellipsis-v"></i>
             </button>
-
         </div>
     </div>`
 })

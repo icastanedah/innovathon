@@ -51,11 +51,11 @@ interface LocationRequest {
   selector: 'app-boletas',
   standalone: true,
   imports: [
-    FormsModule, 
-    ButtonModule, 
-    InputTextModule, 
-    CommonModule, 
-    StepperModule, 
+    FormsModule,
+    ButtonModule,
+    InputTextModule,
+    CommonModule,
+    StepperModule,
     CardModule,
     DropdownModule,
     SelectButtonModule,
@@ -78,7 +78,7 @@ export class BoletasComponent implements OnInit {
   serviceType: string = 'envioCombustible';
   vehiculo: string = '';
   isLoading: boolean = false;
-  
+
   serviceOptions = [
     { label: 'Paso de Corriente JUMPER', value: 'pasoCorrienteJumper' },
     { label: 'Paso de Corriente CABLES', value: 'pasoCorrienteCables' },
@@ -156,7 +156,7 @@ export class BoletasComponent implements OnInit {
           this.longitud = location.lng();
           this.map?.setCenter(location);
           this.marker?.setPosition(location);
-          
+
           // Update the location request with the new address and coordinates
           this.locationRequest.ubicacion = this.direccion;
           this.locationRequest.latitud = this.latitud;
@@ -186,10 +186,10 @@ export class BoletasComponent implements OnInit {
       alert('Por favor ingrese la información del vehículo');
       return;
     }
-    
+
     this.activeStep = 2;
     this.isLoading = true;
-    
+
     // Update the request data
     this.locationRequest = {
       ubicacion: this.direccion,
@@ -198,7 +198,7 @@ export class BoletasComponent implements OnInit {
       latitud: this.latitud,
       longitud: this.longitud
     };
-    
+
     // Call the API
     this.http.post<ApiResponse[]>('/api/better-routes', this.locationRequest)
       .subscribe({
@@ -218,31 +218,50 @@ export class BoletasComponent implements OnInit {
   }
 
   generateRoutesFromApiData(): void {
+    // Verificar que apiResponseData sea un array
+    if (!this.apiResponseData || !Array.isArray(this.apiResponseData)) {
+      console.error('Error: apiResponseData no es un array', this.apiResponseData);
+      // Usar datos de ejemplo si no hay datos válidos
+      this.routeOptions = this.getMockRouteOptions();
+      return;
+    }
+
     // Map the API response data to route options
     this.routeOptions = this.apiResponseData.map((apiProvider, index) => {
       let routeColor: string;
       let routeIcon: string;
       let routeDescription: string;
       let routeTraffic: string;
-      
+
       // Assign different properties based on the index/time
       if (index === 0) {
         routeColor = 'bg-green-100';
         routeIcon = 'pi pi-bolt';
         routeDescription = 'La ruta más rápida para llegar al proveedor.';
-        routeTraffic = 'Ligero';
+        routeTraffic = 'Tráfico ligero';
       } else if (index === 1) {
         routeColor = 'bg-yellow-100';
         routeIcon = 'pi pi-map-marker';
         routeDescription = 'Ruta alternativa con tiempo moderado.';
-        routeTraffic = 'Moderado';
+        routeTraffic = 'Tráfico moderado';
       } else {
         routeColor = 'bg-red-100';
         routeIcon = 'pi pi-clock';
         routeDescription = 'Ruta más larga para llegar al proveedor.';
-        routeTraffic = 'Bajo';
+        routeTraffic = 'Tráfico pesado';
       }
-      
+
+      // Crear un objeto Provider con los datos del proveedor
+      const provider: Provider = {
+        name: apiProvider.proveedorName || `Proveedor ${index + 1}`,
+        distance: apiProvider.distance,
+        time: apiProvider.time,
+        address: 'Dirección no disponible', // Esto podría venir de la API
+        phone: 'Teléfono no disponible', // Esto podría venir de la API
+        rating: 4.0, // Esto podría venir de la API
+        services: [this.serviceTypeLabel] // Esto podría venir de la API
+      };
+
       return {
         name: `Opción ${index + 1}`,
         duration: apiProvider.time,
@@ -252,22 +271,13 @@ export class BoletasComponent implements OnInit {
         toll: false,
         traffic: routeTraffic,
         icon: routeIcon,
-        provider: {
-          name: apiProvider.proveedorName,
-          distance: apiProvider.distance,
-          time: apiProvider.time,
-          // Add default values for other provider properties
-          phone: '+502 ' + Math.floor(1000000 + Math.random() * 9000000),
-          rating: Number((3 + Math.random() * 2).toFixed(1)),
-          openHours: 'Lun-Vie: 8:00 - 18:00, Sáb: 8:00 - 13:00',
-          services: ['Envío de combustible', 'Asistencia en carretera', 'Servicio 24/7']
-        }
+        provider: provider
       };
     });
-    
-    // Auto-select the first route if available
-    if (this.routeOptions.length > 0) {
-      this.selectRoute(this.routeOptions[0]);
+
+    // Si no hay opciones, usar datos de ejemplo
+    if (this.routeOptions.length === 0) {
+      this.routeOptions = this.getMockRouteOptions();
     }
   }
 
@@ -279,28 +289,30 @@ export class BoletasComponent implements OnInit {
         return 'rgb(232,220,92)';
       case 'bg-red-100':
         return 'rgb(239,87,87)';
+      case 'bg-blue-100':
+        return 'rgb(96,165,250)';
       default:
-        return 'white';
+        return 'rgb(229,231,235)';
     }
   }
-  
+
   selectRoute(route: RouteOption): void {
     this.selectedRoute = route;
     if (route.provider) {
       this.nearestProvider = route.provider;
     }
   }
-  
+
   onServiceTypeChange(): void {
     this.locationRequest.servicio = this.serviceType;
     // In a real application, you might want to refresh the data based on the new service type
   }
-  
+
   get serviceTypeLabel(): string {
     const option = this.serviceOptions.find(opt => opt.value === this.serviceType);
     return option ? option.label : '';
   }
-  
+
   getServiceIcon(serviceType: string): string {
     switch (serviceType) {
       case 'pasoCorrienteJumper':
@@ -318,5 +330,53 @@ export class BoletasComponent implements OnInit {
       default:
         return 'pi pi-wrench';
     }
+  }
+
+  /**
+   * Genera opciones de ruta de ejemplo para usar como fallback
+   */
+  getMockRouteOptions(): RouteOption[] {
+    return [
+      {
+        name: 'Proveedor Ejemplo 1',
+        duration: '15 min',
+        color: 'bg-green-100',
+        distance: '3.2 km',
+        description: 'Ruta más rápida',
+        toll: false,
+        traffic: 'Tráfico ligero',
+        icon: 'fa-solid fa-bolt',
+        provider: {
+          name: 'Servicio Rápido',
+          address: 'Zona 10, Ciudad de Guatemala',
+          distance: '3.2 km',
+          phone: '5555-1234',
+          rating: 4.5,
+          openHours: '24 horas',
+          services: ['Grúa', 'Combustible', 'Mecánica'],
+          time: '15 min'
+        }
+      },
+      {
+        name: 'Proveedor Ejemplo 2',
+        duration: '22 min',
+        color: 'bg-yellow-100',
+        distance: '4.5 km',
+        description: 'Ruta alternativa',
+        toll: false,
+        traffic: 'Tráfico moderado',
+        icon: 'fa-solid fa-road',
+        provider: {
+          name: 'Asistencia Total',
+          address: 'Zona 14, Ciudad de Guatemala',
+          distance: '4.5 km',
+          phone: '5555-5678',
+          rating: 4.2,
+          openHours: '7:00 - 22:00',
+          services: ['Grúa', 'Combustible'],
+          time: '22 min'
+        }
+      }
+    ];
   }
 }

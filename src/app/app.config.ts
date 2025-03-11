@@ -6,6 +6,7 @@ import Aura from '@primeng/themes/aura';
 import { routes } from './app.routes';
 import {provideHttpClient} from '@angular/common/http';
 import {provideRouter, withEnabledBlockingInitialNavigation, withInMemoryScrolling} from '@angular/router';
+import { ProveedoresService } from './services/proveedores.service';
 
 export const appConfig: ApplicationConfig = {
 
@@ -14,7 +15,7 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes, withInMemoryScrolling({ anchorScrolling: 'enabled', scrollPositionRestoration: 'enabled' }), withEnabledBlockingInitialNavigation()),
     provideHttpClient(),
     provideAnimationsAsync(),
-    providePrimeNG({ theme: { preset: Aura, options: { darkModeSelector: '.app-dark' } } })
-
+    providePrimeNG({ theme: { preset: Aura, options: { darkModeSelector: '.app-dark' } } }),
+    ProveedoresService
   ]
 };

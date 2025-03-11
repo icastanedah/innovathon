@@ -1,0 +1,122 @@
+<div class="container mx-auto p-4">
+  <div class="bg-white shadow-md rounded-lg p-6">
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-2xl font-bold">Proveedores disponibles</h2>
+      <button
+        (click)="volver()"
+        class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md font-medium"
+      >
+        Volver
+      </button>
+    </div>
+
+    <!-- Información del vehículo y ubicación -->
+    <div class="mb-6 p-4 bg-blue-50 rounded-md">
+      <h3 class="text-lg font-semibold mb-2">Información del servicio</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <p class="font-medium">Vehículo:</p>
+          <p class="text-gray-700">{{ vehiculoInfo }}</p>
+        </div>
+        <div>
+          <p class="font-medium">Ubicación:</p>
+          <p class="text-gray-700">{{ direccion }}</p>
+        </div>
+        <div>
+          <p class="font-medium">Tipo de servicio:</p>
+          <p class="text-gray-700">{{ tipoServicio }}</p>
+        </div>
+        <div *ngIf="proveedoresResponse?.vehicleData?.tipo_grua">
+          <p class="font-medium">Tipo de grúa recomendada:</p>
+          <p class="text-gray-700">{{ proveedoresResponse?.vehicleData?.tipo_grua }}</p>
+        </div>
+      </div>
+
+      <!-- Dimensiones del vehículo -->
+      <div *ngIf="proveedoresResponse?.vehicleData?.dimensiones" class="mt-4">
+        <p class="font-medium">Dimensiones del vehículo:</p>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-1">
+          <div class="bg-white p-2 rounded border border-gray-200">
+            <p class="text-sm text-gray-500">Longitud</p>
+            <p class="font-medium">{{ proveedoresResponse?.vehicleData?.dimensiones?.longitud }} m</p>
+          </div>
+          <div class="bg-white p-2 rounded border border-gray-200">
+            <p class="text-sm text-gray-500">Ancho</p>
+            <p class="font-medium">{{ proveedoresResponse?.vehicleData?.dimensiones?.ancho }} m</p>
+          </div>
+          <div class="bg-white p-2 rounded border border-gray-200">
+            <p class="text-sm text-gray-500">Altura</p>
+            <p class="font-medium">{{ proveedoresResponse?.vehicleData?.dimensiones?.altura }} m</p>
+          </div>
+          <div class="bg-white p-2 rounded border border-gray-200">
+            <p class="text-sm text-gray-500">Distancia entre ejes</p>
+            <p class="font-medium">{{ proveedoresResponse?.vehicleData?.dimensiones?.distancia_entre_ejes }} m</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Peso del vehículo -->
+      <div *ngIf="proveedoresResponse?.vehicleData?.peso" class="mt-4">
+        <p class="font-medium">Peso del vehículo:</p>
+        <p class="text-gray-700">{{ proveedoresResponse?.vehicleData?.peso }} kg</p>
+      </div>
+    </div>
+
+    <!-- Indicador de carga -->
+    <div *ngIf="cargando" class="flex justify-center items-center py-8">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      <span class="ml-3 text-lg text-blue-500">Buscando proveedores cercanos...</span>
+    </div>
+
+    <!-- Mensaje de error -->
+    <div *ngIf="error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+      <p>{{ error }}</p>
+    </div>
+
+    <!-- Lista de proveedores -->
+    <div *ngIf="!cargando && !error && proveedores.length > 0">
+      <h3 class="text-xl font-semibold mb-4">Proveedores disponibles ({{ proveedores.length }})</h3>
+
+      <div class="grid grid-cols-1 gap-4">
+        <div *ngFor="let proveedor of proveedores" class="bg-gray-50 p-4 rounded-md border border-gray-200 hover:border-blue-300 transition-colors">
+          <div class="flex justify-between items-start">
+            <div>
+              <h4 class="font-semibold text-lg">{{ proveedor.proveedorName }}</h4>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                <p class="text-gray-700">
+                  <span class="font-medium">Tiempo estimado:</span> {{ proveedor.time }}
+                </p>
+                <p class="text-gray-700">
+                  <span class="font-medium">Distancia:</span> {{ proveedor.distance }}
+                </p>
+                <p class="text-gray-700">
+                  <span class="font-medium">Teléfono:</span> {{ proveedor.phoneNumber }}
+                </p>
+                <p class="text-gray-700">
+                  <span class="font-medium">Departamento:</span> {{ proveedor.department }}
+                </p>
+              </div>
+              <p class="text-gray-700 mt-2">
+                <span class="font-medium">Dirección:</span> {{ proveedor.direccion }}
+              </p>
+              <p class="text-gray-700 mt-1">
+                <span class="font-medium">Límite de distancia:</span> {{ proveedor.distanceLimit }}
+              </p>
+            </div>
+            <button
+              (click)="seleccionarProveedor(proveedor)"
+              class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md font-medium"
+            >
+              Seleccionar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mensaje cuando no hay proveedores -->
+    <div *ngIf="!cargando && !error && proveedores.length === 0" class="bg-yellow-50 p-4 rounded-md text-center">
+      <p class="text-yellow-700">No se encontraron proveedores disponibles para esta ubicación y tipo de servicio.</p>
+    </div>
+  </div>
+</div>
