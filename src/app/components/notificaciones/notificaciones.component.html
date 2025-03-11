@@ -15,7 +15,15 @@
             <span class="text-blue-500">Procesando...</span>
           </div>
         </div>
-        <div>
+        <div class="flex gap-2">
+          <button
+            (click)="procesarBoletaActual()"
+            class="px-4 py-2 rounded-md font-medium bg-blue-500 hover:bg-blue-600 text-white"
+            [disabled]="cargando || incidentes.length === 0"
+            [ngClass]="{'opacity-50 cursor-not-allowed': cargando || incidentes.length === 0}"
+          >
+            Procesar boleta
+          </button>
           <button
             (click)="toggleMonitoreo()"
             class="px-4 py-2 rounded-md font-medium"
@@ -87,14 +95,6 @@
                 [ngClass]="{'opacity-50 cursor-not-allowed': procesandoIncidente}"
               >
                 Procesar
-              </button>
-              <button
-                (click)="buscarProveedores(i)"
-                class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md font-medium"
-                [disabled]="procesandoIncidente"
-                [ngClass]="{'opacity-50 cursor-not-allowed': procesandoIncidente}"
-              >
-                Buscar Proveedores
               </button>
             </div>
           </div>
@@ -217,8 +217,159 @@
             </div>
           </div>
 
+          <!-- Información del proveedor -->
+          <div class="mb-6">
+            <h3 class="text-lg font-semibold mb-3 text-blue-600 border-b pb-2">Información del Proveedor</h3>
+
+            <!-- Indicador de carga -->
+            <div *ngIf="buscandoProveedor" class="flex justify-center items-center py-4">
+              <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+              <span class="ml-3 text-blue-500">Buscando proveedores cercanos...</span>
+            </div>
+
+            <!-- Mensaje de error -->
+            <div *ngIf="errorMensaje" class="bg-red-50 p-4 rounded-md border border-red-200 mb-4">
+              <div class="flex items-center">
+                <svg class="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <p class="text-red-700">{{ errorMensaje }}</p>
+              </div>
+              <div class="mt-2">
+                <p class="text-sm text-red-600">La API está devolviendo una estructura diferente a la esperada. Se están utilizando datos simulados para demostración.</p>
+              </div>
+            </div>
+
+            <!-- Información de depuración de la API -->
+            <div *ngIf="mostrarDepuracion && respuestaOriginalAPI" class="bg-gray-50 p-4 rounded-md border border-gray-300 mb-4">
+              <div class="flex justify-between items-center mb-2">
+                <h4 class="font-semibold text-lg">Respuesta Original de la API (Depuración)</h4>
+                <button
+                  (click)="mostrarDepuracion = !mostrarDepuracion"
+                  class="text-gray-500 hover:text-gray-700 focus:outline-none"
+                  type="button"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
+                </button>
+              </div>
+              <div class="bg-gray-100 p-3 rounded-md overflow-x-auto">
+                <pre class="text-xs text-gray-800">{{ respuestaOriginalAPI | json }}</pre>
+              </div>
+            </div>
+
+            <!-- Información del vehículo -->
+            <div *ngIf="proveedorEncontrado && proveedorEncontrado.vehicleData" class="bg-blue-50 p-4 rounded-md border border-blue-200 mb-4">
+              <div class="bg-yellow-100 p-2 rounded-md border border-yellow-300 mb-3">
+                <p class="text-yellow-800 text-sm">
+                  <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  Nota: Se están mostrando datos simulados para demostración.
+                </p>
+              </div>
+              <h4 class="font-semibold text-lg mb-2">Datos del Vehículo</h4>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p class="text-gray-700"><span class="font-medium">Modelo:</span> {{ proveedorEncontrado.vehicleData.modelo }}</p>
+                  <p class="text-gray-700"><span class="font-medium">Año:</span> {{ proveedorEncontrado.vehicleData.anio }}</p>
+                  <p class="text-gray-700"><span class="font-medium">Peso:</span> {{ proveedorEncontrado.vehicleData.peso }} kg</p>
+                </div>
+                <div>
+                  <p class="text-gray-700"><span class="font-medium">Tipo de Grúa:</span> {{ proveedorEncontrado.vehicleData.tipo_grua }}</p>
+                  <p class="text-gray-700"><span class="font-medium">Dimensiones:</span> {{ proveedorEncontrado.vehicleData.dimensiones.longitud }}m x {{ proveedorEncontrado.vehicleData.dimensiones.ancho }}m x {{ proveedorEncontrado.vehicleData.dimensiones.altura }}m</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Lista de proveedores disponibles -->
+            <div *ngIf="proveedorEncontrado && proveedorEncontrado.providerList && proveedorEncontrado.providerList.length > 0" class="mb-4">
+              <div class="bg-white p-4 rounded-md border border-gray-200 mb-4">
+                <h2 class="text-xl font-bold mb-4">Proveedores disponibles para {{ proveedorEncontrado.ubicacion }}</h2>
+
+                <div class="mb-4">
+                  <p class="text-gray-700 mb-2"><span class="font-medium">Servicio:</span> {{ proveedorEncontrado.servicio }}</p>
+                  <p class="text-gray-700"><span class="font-medium">Vehículo:</span> {{ proveedorEncontrado.vehicleData.modelo }} {{ proveedorEncontrado.vehicleData.anio }}</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                  <div *ngFor="let proveedor of proveedorEncontrado.providerList; let i = index"
+                       class="bg-white p-4 rounded-md border border-gray-200 hover:border-blue-300 transition-colors">
+                    <h3 class="text-lg font-bold mb-2">{{ proveedor.proveedorName }}</h3>
+                    <p class="text-center font-semibold text-blue-600 mb-4">{{ proveedor.direccion }}</p>
+
+                    <div class="mb-4">
+                      <p class="text-gray-700 mb-2"><span class="font-medium">Tiempo estimado:</span> {{ proveedor.time }}</p>
+                      <p class="text-gray-700 mb-2"><span class="font-medium">Distancia:</span> {{ proveedor.distance }}</p>
+                      <p class="text-gray-700 mb-2"><span class="font-medium">Descripción:</span> {{ proveedor.descripcion }}</p>
+                      <p class="text-gray-700"><span class="font-medium">Tráfico:</span> {{ proveedor.trafico }}</p>
+                    </div>
+
+                    <div class="mt-4">
+                      <div *ngIf="proveedor.trafico === 'Tráfico ligero'" class="w-full h-2 bg-green-500 rounded"></div>
+                      <div *ngIf="proveedor.trafico === 'Tráfico moderado'" class="w-full h-2 bg-yellow-500 rounded"></div>
+                      <div *ngIf="proveedor.trafico === 'Tráfico pesado'" class="w-full h-2 bg-red-500 rounded"></div>
+                    </div>
+
+                    <button
+                      (click)="seleccionarProveedor(proveedor)"
+                      class="w-full mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md font-medium"
+                      type="button"
+                    >
+                      Seleccionar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Información del proveedor seleccionado -->
+            <div *ngIf="proveedorSeleccionado" class="bg-green-50 p-4 rounded-md border border-green-200">
+              <h4 class="font-semibold text-lg mb-2">Proveedor Asignado</h4>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p class="text-gray-700"><span class="font-medium">Nombre:</span> {{ proveedorSeleccionado.proveedorName }}</p>
+                  <p class="text-gray-700"><span class="font-medium">Teléfono:</span> {{ proveedorSeleccionado.phoneNumber }}</p>
+                  <p class="text-gray-700"><span class="font-medium">Departamento:</span> {{ proveedorSeleccionado.department }}</p>
+                </div>
+                <div>
+                  <p class="text-gray-700"><span class="font-medium">Tiempo estimado:</span> {{ proveedorSeleccionado.time }}</p>
+                  <p class="text-gray-700"><span class="font-medium">Distancia:</span> {{ proveedorSeleccionado.distance }}</p>
+                  <p class="text-gray-700"><span class="font-medium">Dirección:</span> {{ proveedorSeleccionado.direccion }}</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Información del proveedor de la boleta (cuando no hay proveedores encontrados) -->
+            <div *ngIf="!proveedorEncontrado && !buscandoProveedor && boletaCreada && boletaCreada.proveedor && boletaCreada.proveedor.nombre" class="bg-blue-50 p-4 rounded-md border border-blue-200">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p class="text-gray-700"><span class="font-medium">Nombre:</span> {{ boletaCreada.proveedor.nombre }}</p>
+                  <p class="text-gray-700"><span class="font-medium">Teléfonos:</span> {{ boletaCreada.proveedor.telefonos?.join(', ') }}</p>
+                </div>
+                <div>
+                  <p class="text-gray-700"><span class="font-medium">Tipo:</span> {{ boletaCreada.proveedor.tipo }}</p>
+                  <p class="text-gray-700"><span class="font-medium">Base:</span> {{ boletaCreada.proveedor.base }}</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mensaje cuando no hay proveedor -->
+            <div *ngIf="!buscandoProveedor && !proveedorEncontrado && !proveedorSeleccionado && (!boletaCreada || !boletaCreada.proveedor || !boletaCreada.proveedor.nombre)" class="bg-gray-50 p-4 rounded-md text-center">
+              <p class="text-gray-600">No se ha asignado un proveedor a esta boleta.</p>
+            </div>
+          </div>
+
           <!-- Botones de acción -->
           <div class="flex justify-end mt-6">
+            <button
+              (click)="irAListaBoletas()"
+              class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md font-medium mr-2"
+              type="button"
+            >
+              Continuar
+            </button>
             <button
               (click)="limpiarDatos()"
               class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md font-medium mr-2"

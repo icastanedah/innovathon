@@ -80,7 +80,7 @@ export class ProveedoresComponent implements OnInit {
         this.proveedores = response.providerList || [];
 
         if (response.vehicleData) {
-          this.vehiculoInfo = `${response.vehicleData.modelo} (${response.vehicleData.año})`;
+          this.vehiculoInfo = `${response.vehicleData.modelo} (${response.vehicleData.anio})`;
         }
 
         this.cargando = false;

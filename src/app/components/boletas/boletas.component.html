@@ -1,5 +1,20 @@
 <div class="card flex justify-center w-full">
-  <p-stepper [value]="activeStep" class="w-full">
+  <!-- Indicador de carga mientras se obtiene la boleta -->
+  <div *ngIf="cargandoBoleta" class="flex flex-column align-items-center justify-content-center w-full p-5">
+    <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+    <p class="mt-3">Cargando información de la boleta...</p>
+  </div>
+
+  <!-- Mensaje de error si no se encuentra la boleta -->
+  <div *ngIf="!cargandoBoleta && boletaId && !boletaActual" class="flex flex-column align-items-center justify-content-center w-full p-5">
+    <i class="pi pi-exclamation-triangle text-yellow-500" style="font-size: 3rem"></i>
+    <h2 class="mt-3 text-xl">No se encontró la boleta</h2>
+    <p class="mt-2">La boleta con ID {{ boletaId }} no existe o no está disponible.</p>
+    <button pButton label="Volver al listado" icon="pi pi-arrow-left" class="mt-3" routerLink="/boletas"></button>
+  </div>
+
+  <!-- Contenido principal que se muestra cuando la boleta está cargada o no se está buscando una boleta específica -->
+  <p-stepper [value]="activeStep" class="w-full" *ngIf="!cargandoBoleta && (!boletaId || boletaActual)">
     <p-step-list>
       <p-step [value]="1" [disabled]="true">Mapa</p-step>
       <p-step [value]="2" [disabled]="true">Rutas</p-step>
@@ -23,19 +38,35 @@
               </div>
 
               <h3 class="text-lg font-semibold mb-2 mt-4">Ubicación</h3>
-              <input
-                type="text"
-                pInputText
-                [(ngModel)]="direccion"
-                placeholder="Buscar dirección"
-                class="w-full"
-              />
-              <button
-                pButton
-                label="Buscar"
-                (click)="buscarDireccion()"
-                class="mt-2"
-              ></button>
+              <div class="flex flex-column md:flex-row gap-2 mb-2">
+                <input
+                  type="text"
+                  pInputText
+                  [(ngModel)]="direccion"
+                  placeholder="Buscar dirección"
+                  class="w-full"
+                />
+                <button
+                  pButton
+                  label="Buscar"
+                  (click)="buscarDireccion()"
+                  class="p-button-primary"
+                ></button>
+                <button
+                  *ngIf="boletaActual"
+                  pButton
+                  icon="pi pi-map-marker"
+                  label="Centrar en ubicación"
+                  (click)="centrarEnUbicacion()"
+                  class="p-button-secondary"
+                  pTooltip="Centrar el mapa en la ubicación de la boleta"
+                ></button>
+              </div>
+
+              <div class="flex flex-row gap-2 text-sm mb-3" *ngIf="latitud && longitud">
+                <span><strong>Latitud:</strong> {{ latitud | number:'1.6-6' }}</span>
+                <span><strong>Longitud:</strong> {{ longitud | number:'1.6-6' }}</span>
+              </div>
 
               <h3 class="text-lg font-semibold mt-4 mb-2">Información del vehículo</h3>
               <input
@@ -47,7 +78,17 @@
               />
               <small class="text-gray-500">Ingrese marca, modelo y año del vehículo</small>
             </div>
-            <div id="map" style="height: 400px"></div>
+            <div class="relative">
+              <div id="map" style="height: 400px; width: 100%; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);"></div>
+
+              <!-- Indicador de carga del mapa -->
+              <div *ngIf="!map" class="absolute top-0 left-0 w-full h-full flex justify-content-center align-items-center bg-white bg-opacity-70">
+                <div class="flex flex-column align-items-center">
+                  <i class="pi pi-spin pi-spinner text-primary" style="font-size: 2rem;"></i>
+                  <span class="mt-2">Cargando mapa...</span>
+                </div>
+              </div>
+            </div>
             <div class="mt-4">
               <button
                 pButton
@@ -88,13 +129,14 @@
                 </ng-template>
                 <div class="text-center mb-3">
                   <h3 class="text-lg font-semibold">{{ route.provider?.name }}</h3>
+                  <p class="text-blue-600 font-medium">{{ route.serviceType }}</p>
                 </div>
                 <p>Tiempo estimado: {{ route.duration }}</p>
                 <p>Distancia: {{ route.distance }}</p>
                 <p>Descripción: {{ route.description }}</p>
                 <p>Tráfico: {{ route.traffic }}</p>
                 <ng-template pTemplate="footer">
-                  <div [style]="{ 'background-color': getBackgroundColor(route.color) }" style="height: 10px; width: 100%; border-radius: 0 0 4px 4px;"></div>
+                  <div [style]="{ 'background-color': getBackgroundColor(route.color) }" style="height: 8px; width: 100%; border-radius: 0 0 4px 4px; margin-top: 10px;"></div>
                 </ng-template>
               </p-card>
             </div>

@@ -8,7 +8,11 @@ import { StepperModule } from 'primeng/stepper';
 import { CardModule } from 'primeng/card';
 import { DropdownModule } from 'primeng/dropdown';
 import { SelectButtonModule } from 'primeng/selectbutton';
-import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { TooltipModule } from 'primeng/tooltip';
+import { HttpClient } from '@angular/common/http';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { BoletasService } from '../../services/boletas.service';
+import { Boleta } from '../../interfaces/boleta.interface';
 
 interface RouteOption {
   name: string;
@@ -19,6 +23,7 @@ interface RouteOption {
   toll: boolean;
   traffic: string;
   icon: string;
+  serviceType: string;
   provider?: Provider;
 }
 
@@ -31,12 +36,36 @@ interface Provider {
   openHours?: string;
   services?: string[];
   time?: string;
+  serviceType: string;
 }
 
 interface ApiResponse {
   proveedorName: string;
   time: string;
   distance: string;
+  phoneNumber?: string;
+  direccion?: string;
+  department?: string;
+  distanceLimit?: string;
+  descripcion?: string;
+  trafico?: string;
+}
+
+interface ApiResponseData {
+  providerList: ApiResponse[];
+  vehicleData: {
+    modelo: string;
+    anio?: number;
+    año?: number;
+    dimensiones?: {
+      longitud: string;
+      ancho: string;
+      altura: string;
+      distancia_entre_ejes: string;
+    };
+    peso: string;
+    tipo_grua: string;
+  };
 }
 
 interface LocationRequest {
@@ -59,7 +88,8 @@ interface LocationRequest {
     CardModule,
     DropdownModule,
     SelectButtonModule,
-    HttpClientModule
+    RouterModule,
+    TooltipModule
   ],
   templateUrl: './boletas.component.html',
   styleUrls: ['./boletas.component.scss'],
@@ -78,6 +108,9 @@ export class BoletasComponent implements OnInit {
   serviceType: string = 'envioCombustible';
   vehiculo: string = '';
   isLoading: boolean = false;
+  boletaActual: Boleta | null = null;
+  boletaId: number | null = null;
+  cargandoBoleta: boolean = false;
 
   serviceOptions = [
     { label: 'Paso de Corriente JUMPER', value: 'pasoCorrienteJumper' },
@@ -88,24 +121,8 @@ export class BoletasComponent implements OnInit {
     { label: 'Grúa', value: 'grua' }
   ];
 
-  // Mock API response data for fallback
-  apiResponseData: ApiResponse[] = [
-    {
-        "proveedorName": "Grúas Don Chepe",
-        "time": "0 horas 10 minutos",
-        "distance": "3.98km"
-    },
-    {
-        "proveedorName": "Grúas Rodas",
-        "time": "0 horas 14 minutos",
-        "distance": "9.74km"
-    },
-    {
-        "proveedorName": "Grúas Andree",
-        "time": "0 horas 25 minutos",
-        "distance": "9.86km"
-    }
-  ];
+  // Actualizar la definición de apiResponseData
+  apiResponseData: ApiResponseData | ApiResponse[] = [];
 
   locationRequest: LocationRequest = {
     ubicacion: "",
@@ -115,34 +132,154 @@ export class BoletasComponent implements OnInit {
     longitud: 0
   };
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private route: ActivatedRoute,
+    private router: Router,
+    private boletasService: BoletasService
+  ) {}
 
   ngOnInit(): void {
+    // Verificar si hay un ID de boleta en la ruta
+    this.route.params.subscribe(params => {
+      if (params['id']) {
+        this.boletaId = +params['id']; // Convertir a número
+        this.cargarBoleta(this.boletaId);
+      }
+    });
+
+    // Inicializar Google Maps
+    this.inicializarMapa();
+  }
+
+  /**
+   * Inicializa el mapa de Google Maps
+   */
+  inicializarMapa(): void {
     const loader = new Loader({
       apiKey: 'AIzaSyBAvfiixu6edXR8AejG4t4VyyypnYYxUOk',
     });
+
     loader.load().then(() => {
       this.geocoder = new google.maps.Geocoder();
-      this.map = new google.maps.Map(document.getElementById('map') as HTMLElement, {
-        center: { lat: this.latitud, lng: this.longitud },
-        zoom: 8,
-      });
-      this.marker = new google.maps.Marker({
-        position: { lat: this.latitud, lng: this.longitud },
-        map: this.map,
-        draggable: true,
-      });
 
-      // Add event listener for marker drag end
-      if (this.marker) {
-        google.maps.event.addListener(this.marker, 'dragend', () => {
-          const position = this.marker?.getPosition();
-          if (position) {
-            this.latitud = position.lat();
-            this.longitud = position.lng();
-            this.updateAddressFromCoordinates(this.latitud, this.longitud);
-          }
+      // Crear el mapa con las coordenadas iniciales
+      const mapElement = document.getElementById('map');
+      if (mapElement) {
+        this.map = new google.maps.Map(mapElement, {
+          center: { lat: this.latitud, lng: this.longitud },
+          zoom: 8,
+          mapTypeControl: true,
         });
+
+        // Crear un marcador arrastrable
+        this.marker = new google.maps.Marker({
+          position: { lat: this.latitud, lng: this.longitud },
+          map: this.map,
+          draggable: true,
+        });
+
+        // Actualizar las coordenadas cuando se arrastra el marcador
+        if (this.marker) {
+          this.marker.addListener('dragend', () => {
+            const position = this.marker?.getPosition();
+            if (position) {
+              this.latitud = position.lat();
+              this.longitud = position.lng();
+              this.updateAddressFromCoordinates(this.latitud, this.longitud);
+            }
+          });
+        }
+
+        // Si ya tenemos una boleta cargada, actualizar el mapa con sus coordenadas
+        if (this.boletaActual) {
+          this.actualizarMapaConBoleta(this.boletaActual);
+        }
+      }
+    });
+  }
+
+  /**
+   * Actualiza el mapa con las coordenadas de la boleta
+   */
+  actualizarMapaConBoleta(boleta: Boleta): void {
+    // Accedemos a las coordenadas de manera segura, ya que pueden estar en diferentes propiedades
+    const lat = (boleta.direccion as any)?.latitud || (boleta.direccion as any)?.lat;
+    const lng = (boleta.direccion as any)?.longitud || (boleta.direccion as any)?.lng;
+
+    if (lat && lng) {
+      this.latitud = parseFloat(lat);
+      this.longitud = parseFloat(lng);
+
+      console.log('Actualizando mapa con coordenadas:', this.latitud, this.longitud);
+
+      // Actualizar el mapa cuando esté disponible
+      if (this.map && this.marker) {
+        const position = { lat: this.latitud, lng: this.longitud };
+
+        // Centrar el mapa en la posición
+        this.map.setCenter(position);
+        this.map.setZoom(15); // Acercar el mapa para mejor visualización
+
+        // Actualizar la posición del marcador
+        this.marker.setPosition(position);
+
+        // Asegurarse de que el marcador sea visible
+        this.marker.setMap(this.map);
+
+        // Añadir un pequeño retraso para asegurar que el mapa se renderice correctamente
+        setTimeout(() => {
+          if (this.map) {
+            google.maps.event.trigger(this.map, 'resize');
+          }
+        }, 100);
+      } else {
+        // Si el mapa aún no está inicializado, esperar a que se inicialice
+        console.log('Mapa no disponible, reintentando en 500ms...');
+        setTimeout(() => {
+          this.actualizarMapaConBoleta(boleta);
+        }, 500);
+      }
+    } else {
+      console.warn('No se encontraron coordenadas válidas en la boleta:', boleta);
+    }
+  }
+
+  cargarBoleta(id: number): void {
+    this.cargandoBoleta = true;
+    this.boletasService.getBoleta(id).subscribe({
+      next: (boleta) => {
+        this.boletaActual = boleta;
+        console.log('Boleta cargada:', boleta);
+
+        // Inicializar datos del formulario con la información de la boleta
+        if (boleta.direccion?.ubicacion) {
+          this.direccion = boleta.direccion.ubicacion;
+        }
+
+        if (boleta.vehiculo) {
+          this.vehiculo = `${boleta.vehiculo.marca} ${boleta.vehiculo.linea} ${boleta.vehiculo.modelo} - ${boleta.vehiculo.placa}`;
+        }
+
+        if (boleta.servicios && boleta.servicios.length > 0) {
+          // Encontrar el servicio correspondiente en las opciones
+          const servicio = boleta.servicios[0].tipo;
+          const opcionServicio = this.serviceOptions.find(opt =>
+            opt.label.toLowerCase().includes(servicio.toLowerCase()));
+
+          if (opcionServicio) {
+            this.serviceType = opcionServicio.value;
+          }
+        }
+
+        // Actualizar el mapa con las coordenadas de la boleta
+        this.actualizarMapaConBoleta(boleta);
+
+        this.cargandoBoleta = false;
+      },
+      error: (error) => {
+        console.error('Error al cargar la boleta:', error);
+        this.cargandoBoleta = false;
       }
     });
   }
@@ -218,81 +355,145 @@ export class BoletasComponent implements OnInit {
   }
 
   generateRoutesFromApiData(): void {
-    // Verificar que apiResponseData sea un array
-    if (!this.apiResponseData || !Array.isArray(this.apiResponseData)) {
-      console.error('Error: apiResponseData no es un array', this.apiResponseData);
+    // Verificar que apiResponseData tenga la estructura correcta
+    if (!this.apiResponseData) {
+      console.error('Error: apiResponseData es null o undefined', this.apiResponseData);
       // Usar datos de ejemplo si no hay datos válidos
       this.routeOptions = this.getMockRouteOptions();
       return;
     }
 
-    // Map the API response data to route options
-    this.routeOptions = this.apiResponseData.map((apiProvider, index) => {
-      let routeColor: string;
-      let routeIcon: string;
-      let routeDescription: string;
-      let routeTraffic: string;
+    // Si apiResponseData es un objeto con providerList
+    if (!Array.isArray(this.apiResponseData) && this.apiResponseData.providerList) {
+      console.log('apiResponseData es un objeto con providerList', this.apiResponseData);
 
-      // Assign different properties based on the index/time
-      if (index === 0) {
-        routeColor = 'bg-green-100';
-        routeIcon = 'pi pi-bolt';
-        routeDescription = 'La ruta más rápida para llegar al proveedor.';
-        routeTraffic = 'Tráfico ligero';
-      } else if (index === 1) {
-        routeColor = 'bg-yellow-100';
-        routeIcon = 'pi pi-map-marker';
-        routeDescription = 'Ruta alternativa con tiempo moderado.';
-        routeTraffic = 'Tráfico moderado';
-      } else {
-        routeColor = 'bg-red-100';
-        routeIcon = 'pi pi-clock';
-        routeDescription = 'Ruta más larga para llegar al proveedor.';
-        routeTraffic = 'Tráfico pesado';
-      }
+      // Map the provider list to route options
+      this.routeOptions = this.apiResponseData.providerList.map((apiProvider, index) => {
+        // Determinar el tipo de servicio basado en el índice
+        let serviceType = '';
+        let colorClass = '';
 
-      // Crear un objeto Provider con los datos del proveedor
-      const provider: Provider = {
-        name: apiProvider.proveedorName || `Proveedor ${index + 1}`,
-        distance: apiProvider.distance,
-        time: apiProvider.time,
-        address: 'Dirección no disponible', // Esto podría venir de la API
-        phone: 'Teléfono no disponible', // Esto podría venir de la API
-        rating: 4.0, // Esto podría venir de la API
-        services: [this.serviceTypeLabel] // Esto podría venir de la API
-      };
+        if (index === 0) {
+          serviceType = 'Servicio Rápido';
+          colorClass = 'green';
+        } else if (index === 1) {
+          serviceType = 'Asistencia Total';
+          colorClass = 'yellow';
+        } else {
+          serviceType = 'Servicio Estándar';
+          colorClass = 'red';
+        }
 
-      return {
-        name: `Opción ${index + 1}`,
-        duration: apiProvider.time,
-        color: routeColor,
-        distance: apiProvider.distance,
-        description: routeDescription,
-        toll: false,
-        traffic: routeTraffic,
-        icon: routeIcon,
-        provider: provider
-      };
-    });
+        // Determinar el tráfico basado en el tiempo
+        const trafficLevel = apiProvider.trafico ||
+          (apiProvider.time.includes('10') ? 'Tráfico ligero' :
+           apiProvider.time.includes('14') ? 'Tráfico moderado' : 'Tráfico pesado');
 
-    // Si no hay opciones, usar datos de ejemplo
-    if (this.routeOptions.length === 0) {
+        // Crear la descripción
+        const description = apiProvider.descripcion ||
+          (index === 0 ? 'Ruta más rápida' :
+           index === 1 ? 'Ruta alternativa' : 'Ruta con tráfico');
+
+        return {
+          name: apiProvider.proveedorName,
+          duration: apiProvider.time,
+          color: colorClass,
+          distance: apiProvider.distance,
+          description: description,
+          toll: false,
+          traffic: trafficLevel,
+          icon: this.getServiceIcon(this.serviceType),
+          serviceType: serviceType,
+          provider: {
+            name: apiProvider.proveedorName,
+            address: apiProvider.direccion || 'Guatemala',
+            distance: apiProvider.distance,
+            phone: apiProvider.phoneNumber || '555-1234',
+            rating: 4.5,
+            openHours: '24/7',
+            services: [this.serviceTypeLabel],
+            time: apiProvider.time,
+            serviceType: serviceType
+          }
+        };
+      });
+    }
+    // Si apiResponseData es un array (formato antiguo)
+    else if (Array.isArray(this.apiResponseData)) {
+      console.log('apiResponseData es un array', this.apiResponseData);
+
+      // Map the API response data to route options
+      this.routeOptions = this.apiResponseData.map((apiProvider, index) => {
+        // Determinar el tipo de servicio basado en el índice
+        let serviceType = '';
+        let colorClass = '';
+
+        if (index === 0) {
+          serviceType = 'Servicio Rápido';
+          colorClass = 'green';
+        } else if (index === 1) {
+          serviceType = 'Asistencia Total';
+          colorClass = 'yellow';
+        } else {
+          serviceType = 'Servicio Estándar';
+          colorClass = 'red';
+        }
+
+        // Determinar el tráfico basado en el tiempo
+        const trafficLevel = apiProvider.time.includes('10') ? 'Tráfico ligero' :
+                            apiProvider.time.includes('14') ? 'Tráfico moderado' : 'Tráfico pesado';
+
+        // Crear la descripción
+        const description = index === 0 ? 'Ruta más rápida' :
+                           index === 1 ? 'Ruta alternativa' : 'Ruta con tráfico';
+
+        return {
+          name: apiProvider.proveedorName,
+          duration: apiProvider.time,
+          color: colorClass,
+          distance: apiProvider.distance,
+          description: description,
+          toll: false,
+          traffic: trafficLevel,
+          icon: this.getServiceIcon(this.serviceType),
+          serviceType: serviceType,
+          provider: {
+            name: apiProvider.proveedorName,
+            address: 'Guatemala',
+            distance: apiProvider.distance,
+            phone: '555-1234',
+            rating: 4.5,
+            openHours: '24/7',
+            services: [this.serviceTypeLabel],
+            time: apiProvider.time,
+            serviceType: serviceType
+          }
+        };
+      });
+    }
+    // Si no es ninguno de los formatos esperados
+    else {
+      console.error('Error: apiResponseData no tiene el formato esperado', this.apiResponseData);
+      // Usar datos de ejemplo si no hay datos válidos
       this.routeOptions = this.getMockRouteOptions();
     }
   }
 
   getBackgroundColor(colorClass: string): string {
     switch (colorClass) {
+      case 'green':
       case 'bg-green-100':
-        return 'rgb(53,232,117)';
+        return 'rgb(53,232,117)'; // Verde brillante
+      case 'yellow':
       case 'bg-yellow-100':
-        return 'rgb(232,220,92)';
+        return 'rgb(232,220,92)'; // Amarillo
+      case 'red':
       case 'bg-red-100':
-        return 'rgb(239,87,87)';
+        return 'rgb(239,87,87)'; // Rojo
       case 'bg-blue-100':
-        return 'rgb(96,165,250)';
+        return 'rgb(96,165,250)'; // Azul
       default:
-        return 'rgb(229,231,235)';
+        return 'rgb(229,231,235)'; // Gris claro
     }
   }
 
@@ -338,45 +539,58 @@ export class BoletasComponent implements OnInit {
   getMockRouteOptions(): RouteOption[] {
     return [
       {
-        name: 'Proveedor Ejemplo 1',
+        name: 'Servicio Rápido',
         duration: '15 min',
-        color: 'bg-green-100',
+        color: 'green',
         distance: '3.2 km',
-        description: 'Ruta más rápida',
+        description: 'La ruta más rápida para llegar al proveedor.',
         toll: false,
         traffic: 'Tráfico ligero',
         icon: 'fa-solid fa-bolt',
+        serviceType: 'Servicio Rápido',
         provider: {
           name: 'Servicio Rápido',
           address: 'Zona 10, Ciudad de Guatemala',
           distance: '3.2 km',
-          phone: '5555-1234',
-          rating: 4.5,
+          phone: '2222-1111',
+          rating: 4.8,
           openHours: '24 horas',
           services: ['Grúa', 'Combustible', 'Mecánica'],
-          time: '15 min'
+          time: '15 min',
+          serviceType: 'Servicio Rápido'
         }
       },
       {
-        name: 'Proveedor Ejemplo 2',
+        name: 'Asistencia Total',
         duration: '22 min',
-        color: 'bg-yellow-100',
+        color: 'yellow',
         distance: '4.5 km',
-        description: 'Ruta alternativa',
+        description: 'Ruta alternativa con tiempo moderado.',
         toll: false,
         traffic: 'Tráfico moderado',
         icon: 'fa-solid fa-road',
+        serviceType: 'Asistencia Total',
         provider: {
           name: 'Asistencia Total',
           address: 'Zona 14, Ciudad de Guatemala',
           distance: '4.5 km',
-          phone: '5555-5678',
-          rating: 4.2,
+          phone: '2222-2222',
+          rating: 4.5,
           openHours: '7:00 - 22:00',
           services: ['Grúa', 'Combustible'],
-          time: '22 min'
+          time: '22 min',
+          serviceType: 'Asistencia Total'
         }
       }
     ];
+  }
+
+  /**
+   * Centra el mapa en la ubicación de la boleta actual
+   */
+  centrarEnUbicacion(): void {
+    if (this.boletaActual) {
+      this.actualizarMapaConBoleta(this.boletaActual);
+    }
   }
 }
